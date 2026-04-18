@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Publicar</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body { background: #F0F2F5; padding-bottom: 70px; }
+        
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .logo { font-size: 18px; font-weight: 700; color: white; position: absolute; left: 50%; transform: translateX(-50%); }
+        .logo span { color: #FF9800; background: white; padding: 2px 8px; border-radius: 12px; }
+        .header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .header-icon { background: none; border: none; color: white; font-size: 22px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .badge { position: absolute; top: 0; right: 0; background: #FF4444; color: white; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+        
+        .card { background: white; border-radius: 32px; padding: 24px; margin: 16px; }
+        h2 { color: #1C1E21; margin-bottom: 16px; border-left: 5px solid #FF9800; padding-left: 16px; font-size: 20px; }
+        .subtitulo { color: #666; font-size: 13px; margin-bottom: 20px; text-align: center; }
+        
+        .step-indicator { display: flex; justify-content: center; gap: 16px; margin-bottom: 24px; }
+        .step { width: 40px; height: 40px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #999; }
+        .step.active { background: #FF9800; color: white; }
+        
+        .tipo-selector { display: flex; gap: 16px; margin-bottom: 24px; }
+        .tipo-option { flex: 1; padding: 16px; border-radius: 28px; text-align: center; cursor: pointer; background: #F0F2F5; border: 2px solid transparent; }
+        .tipo-option.active { background: #FFF3E0; border-color: #FF9800; }
+        .tipo-option-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+        .tipo-option-title { font-weight: 700; font-size: 16px; }
+        
+        label { font-weight: 600; display: block; margin: 16px 0 6px; }
+        input, textarea, select { width: 100%; padding: 14px; border-radius: 28px; border: 1px solid #ddd; font-size: 16px; background: white; }
+        .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0; }
+        .skill-item { background: #F8F9FA; padding: 10px; border-radius: 24px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .skill-item.selected { background: #FFF3E0; border: 1px solid #FF9800; }
+        .skill-item input { width: 20px; margin: 0; }
+        .skill-item label { margin: 0; flex: 1; cursor: pointer; font-weight: normal; }
+        .provincias { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0; }
+        .provincia-item { background: #F8F9FA; padding: 12px; border-radius: 24px; text-align: center; cursor: pointer; }
+        .provincia-item.selected { background: #FFF3E0; border: 1px solid #FF9800; }
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn { background: #FF9800; width: 100%; padding: 14px; border-radius: 40px; border: none; font-weight: bold; font-size: 16px; margin-top: 20px; cursor: pointer; }
+        .btn-secondary { background: #1C1E21; color: white; }
+        .checkbox-group { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+        .success-msg { background: #E8F5E9; color: #2E7D32; padding: 12px; border-radius: 28px; margin-top: 16px; text-align: center; }
+        .error-msg { background: #FFEBEE; color: #D32F2F; padding: 12px; border-radius: 28px; margin-top: 16px; text-align: center; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast-notif { position: fixed; bottom: 80px; left: 16px; right: 16px; background: #1C1E21; color: white; padding: 12px; border-radius: 50px; text-align: center; z-index: 200; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <button class="menu-btn" onclick="window.location.href='page1.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div class="header-actions">
+        <button class="header-icon" id="btnNotificacoes">🔔<span id="notifBadge" class="badge" style="display:none;">0</span></button>
+        <button class="header-icon" id="btnChat">💬</button>
+        <button class="header-icon" id="btnPerfil">👤</button>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📢 Publicar novo serviço</h2>
+    <div class="subtitulo">"Publique seu trabalho, os biscates que sabe fazer, ou encontre mão de obra barata."</div>
+    
+    <div class="step-indicator"><div class="step active" id="step1">1</div><div class="step" id="step2">2</div></div>
+
+    <!-- ETAPA 1 -->
+    <div id="step1Content">
+        <div class="tipo-selector">
+            <div class="tipo-option" data-tipo="trabalhador"><span class="tipo-option-icon">👷</span><span class="tipo-option-title">Trabalhador</span></div>
+            <div class="tipo-option" data-tipo="contratante"><span class="tipo-option-icon">🤝</span><span class="tipo-option-title">Contratante</span></div>
+        </div>
+        
+        <div id="trabalhadorFields" style="display:none;">
+            <label>🔧 Tipos de trabalho (vários)</label>
+            <div class="skills-grid" id="skillsTrabalhador">
+                <div class="skill-item"><input type="checkbox"><label>🏗️ Construção civil</label></div>
+                <div class="skill-item"><input type="checkbox"><label>⚡ Eletricidade</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🚰 Canalização</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🎨 Pintura</label></div>
+                <div class="skill-item"><input type="checkbox"><label>💻 Informática</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🧹 Limpeza</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🌿 Jardinagem</label></div>
+                <div class="skill-item"><input type="checkbox"><label>✂️ Corte e costura</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🔧 Mecânica</label></div>
+                <div class="skill-item"><input type="checkbox"><label>👶 Babá/Cuidador</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🛵 Entregas</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🖨️ Serigrafia</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🪚 Carpintaria</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🔥 Soldadura</label></div>
+            </div>
+            <div class="input-group"><label>📝 Outro</label><input type="text" id="outroTrabalho" placeholder="Digite outro tipo"></div>
+            <label>📍 Província</label>
+            <div class="provincias" id="provinciaTrabalhador">
+                <div class="provincia-item">Maputo Cidade</div><div class="provincia-item">Maputo Província</div><div class="provincia-item">Gaza</div>
+                <div class="provincia-item">Inhambane</div><div class="provincia-item">Sofala</div><div class="provincia-item">Manica</div>
+                <div class="provincia-item">Tete</div><div class="provincia-item">Zambézia</div><div class="provincia-item">Nampula</div>
+                <div class="provincia-item">Cabo Delgado</div><div class="provincia-item">Niassa</div>
+            </div>
+            <div class="row-2">
+                <div class="input-group"><label>📞 Telefone</label><input type="tel" id="telefoneTrabalhador" placeholder="+258 84 123 4567"></div>
+                <div class="input-group"><label>💬 WhatsApp</label><input type="tel" id="whatsappTrabalhador" placeholder="+258 84 123 4567"></div>
+            </div>
+        </div>
+        
+        <div id="contratanteFields" style="display:none;">
+            <label>🔧 Tipo de serviço</label>
+            <div class="skills-grid" id="skillsContratante">
+                <div class="skill-item"><input type="checkbox"><label>🏗️ Construção civil</label></div>
+                <div class="skill-item"><input type="checkbox"><label>⚡ Eletricidade</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🚰 Canalização</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🎨 Pintura</label></div>
+                <div class="skill-item"><input type="checkbox"><label>💻 Informática</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🧹 Limpeza</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🌿 Jardinagem</label></div>
+                <div class="skill-item"><input type="checkbox"><label>✂️ Corte e costura</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🔧 Mecânica</label></div>
+                <div class="skill-item"><input type="checkbox"><label>👶 Babá/Cuidador</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🛵 Entregas</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🖨️ Serigrafia</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🪚 Carpintaria</label></div>
+                <div class="skill-item"><input type="checkbox"><label>🔥 Soldadura</label></div>
+            </div>
+            <div class="input-group"><label>📝 Outro</label><input type="text" id="outroContratante" placeholder="Digite outro tipo"></div>
+            <label>📍 Província</label>
+            <div class="provincias" id="provinciaContratante">
+                <div class="provincia-item">Maputo Cidade</div><div class="provincia-item">Maputo Província</div><div class="provincia-item">Gaza</div>
+                <div class="provincia-item">Inhambane</div><div class="provincia-item">Sofala</div><div class="provincia-item">Manica</div>
+                <div class="provincia-item">Tete</div><div class="provincia-item">Zambézia</div><div class="provincia-item">Nampula</div>
+                <div class="provincia-item">Cabo Delgado</div><div class="provincia-item">Niassa</div>
+            </div>
+            <div class="row-2">
+                <div class="input-group"><label>📞 Telefone</label><input type="tel" id="telefoneContratante" placeholder="+258 84 123 4567"></div>
+                <div class="input-group"><label>💬 WhatsApp</label><input type="tel" id="whatsappContratante" placeholder="+258 84 123 4567"></div>
+            </div>
+        </div>
+        
+        <button class="btn" id="btnProximo">▶ Avançar</button>
+    </div>
+
+    <!-- ETAPA 2 -->
+    <div id="step2Content" style="display:none;">
+        <label>📌 Título</label>
+        <input type="text" id="titulo" placeholder="Ex: Reparação de telemóveis">
+        <label>📝 Descrição</label>
+        <textarea rows="4" id="descricao" placeholder="Detalhes, local, prazo..."></textarea>
+        <label>💰 Preço</label>
+        <input type="text" id="preco" placeholder="Ex: 500 MZN ou Negociável">
+        <div id="campoTrabalhador" style="display:none;"><label>⏰ Disponibilidade</label><input type="text" id="disponibilidade" placeholder="Ex: Segunda a Sexta, 8h-17h"></div>
+        <div id="campoContratante" style="display:none;"><label>⚠️ Urgência</label><div class="checkbox-group"><input type="radio" name="urgencia" value="sim" id="urgenciaSim"><label for="urgenciaSim">Sim, urgente</label><input type="radio" name="urgencia" value="nao" id="urgenciaNao" checked><label for="urgenciaNao">Normal</label></div></div>
+        <div class="row-2"><button class="btn-secondary" id="btnVoltar">← Voltar</button><button class="btn" id="btnPublicar">📢 Publicar</button></div>
+    </div>
+    
+    <div id="msg" style="margin-top:16px;"></div>
+</div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item active">➕ Publicar</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    let tipoSelecionado = null, provinciaSelecionada = null, currentUser = null;
+
+    document.getElementById('btnNotificacoes').onclick = () => window.location.href = "notificacoes.html";
+    document.getElementById('btnChat').onclick = () => window.location.href = "chat_list.html";
+    document.getElementById('btnPerfil').onclick = () => window.location.href = "perfil.html";
+
+    function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast-notif'; toast.innerHTML = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+
+    document.querySelectorAll('.tipo-option').forEach(opt => { opt.addEventListener('click', () => { document.querySelectorAll('.tipo-option').forEach(o => o.classList.remove('active')); opt.classList.add('active'); tipoSelecionado = opt.dataset.tipo; document.getElementById('trabalhadorFields').style.display = tipoSelecionado === 'trabalhador' ? 'block' : 'none'; document.getElementById('contratanteFields').style.display = tipoSelecionado === 'contratante' ? 'block' : 'none'; }); });
+    
+    function setupProvincias(containerId) { document.querySelectorAll(`#${containerId} .provincia-item`).forEach(prov => { prov.addEventListener('click', () => { document.querySelectorAll(`#${containerId} .provincia-item`).forEach(p => p.classList.remove('selected')); prov.classList.add('selected'); provinciaSelecionada = prov.innerText; }); }); }
+    setupProvincias('provinciaTrabalhador'); setupProvincias('provinciaContratante');
+    
+    function setupSkills(containerId) { document.querySelectorAll(`#${containerId} .skill-item`).forEach(item => { item.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') { const cb = item.querySelector('input'); cb.checked = !cb.checked; } if (item.querySelector('input').checked) item.classList.add('selected'); else item.classList.remove('selected'); }); }); }
+    setupSkills('skillsTrabalhador'); setupSkills('skillsContratante');
+
+    document.getElementById('btnProximo').onclick = () => { if (!tipoSelecionado) { showToast("Selecione Trabalhador ou Contratante"); return; } if (!provinciaSelecionada) { showToast("Selecione a província"); return; } const telefone = tipoSelecionado === 'trabalhador' ? document.getElementById('telefoneTrabalhador').value.trim() : document.getElementById('telefoneContratante').value.trim(); if (!telefone) { showToast("Digite o telefone"); return; } document.getElementById('step1Content').style.display = 'none'; document.getElementById('step2Content').style.display = 'block'; document.getElementById('step1').classList.remove('active'); document.getElementById('step2').classList.add('active'); document.getElementById('campoTrabalhador').style.display = tipoSelecionado === 'trabalhador' ? 'block' : 'none'; document.getElementById('campoContratante').style.display = tipoSelecionado === 'contratante' ? 'block' : 'none'; };
+    document.getElementById('btnVoltar').onclick = () => { document.getElementById('step1Content').style.display = 'block'; document.getElementById('step2Content').style.display = 'none'; document.getElementById('step1').classList.add('active'); document.getElementById('step2').classList.remove('active'); };
+
+    document.getElementById('btnPublicar').onclick = async () => {
+        const user = auth.currentUser;
+        if(!user) { showToast("Faça login"); return; }
+        const titulo = document.getElementById('titulo').value.trim();
+        const descricao = document.getElementById('descricao').value.trim();
+        if(!titulo || !descricao) { document.getElementById('msg').innerHTML = '<div class="error-msg">⚠️ Preencha título e descrição</div>'; return; }
+        
+        let skills = [];
+        document.querySelectorAll(`#${tipoSelecionado === 'trabalhador' ? 'skillsTrabalhador' : 'skillsContratante'} input:checked`).forEach(cb => { const label = cb.closest('.skill-item').querySelector('label').innerText; skills.push(label); });
+        const outro = document.getElementById(tipoSelecionado === 'trabalhador' ? 'outroTrabalho' : 'outroContratante').value.trim();
+        if (outro) skills.push(outro);
+        
+        const telefone = tipoSelecionado === 'trabalhador' ? document.getElementById('telefoneTrabalhador').value.trim() : document.getElementById('telefoneContratante').value.trim();
+        const whatsapp = tipoSelecionado === 'trabalhador' ? document.getElementById('whatsappTrabalhador').value.trim() : document.getElementById('whatsappContratante').value.trim();
+        const disponibilidade = tipoSelecionado === 'trabalhador' ? document.getElementById('disponibilidade').value.trim() : null;
+        const urgencia = tipoSelecionado === 'contratante' ? document.querySelector('input[name="urgencia"]:checked').value : null;
+        
+        const btn = document.getElementById('btnPublicar');
+        const originalText = btn.innerText;
+        btn.innerHTML = '<span class="loading"></span> A publicar...';
+        btn.disabled = true;
+        try {
+            const userSnapshot = await db.ref('users/' + user.uid).once('value');
+            const userData = userSnapshot.val() || {};
+            const postId = db.ref('trabalhos').push().key;
+            const trabalho = { id: postId, tipo: tipoSelecionado, titulo, descricao, preco: document.getElementById('preco').value.trim() || "Negociável", skills, provincia: provinciaSelecionada, telefone, whatsapp, disponibilidade, urgencia, autorId: user.uid, autorNome: userData.nome || "Usuário", autorTelefone: userData.telefone || "", autorBairro: userData.bairro || "", timestamp: Date.now(), likes: 0 };
+            await db.ref('trabalhos/' + postId).set(trabalho);
+            document.getElementById('msg').innerHTML = '<div class="success-msg">✅ Trabalho publicado com sucesso!</div>';
+            document.getElementById('titulo').value = ''; document.getElementById('descricao').value = ''; document.getElementById('preco').value = '';
+            setTimeout(() => { document.getElementById('msg').innerHTML = ''; window.location.href = "page1.html"; }, 2000);
+        } catch (err) { document.getElementById('msg').innerHTML = '<div class="error-msg">❌ Erro: ' + err.message + '</div>'; }
+        finally { btn.innerHTML = originalText; btn.disabled = false; }
+    };
+    
+    auth.onAuthStateChanged(user => { if(!user) window.location.href = "login.html"; else currentUser = user; });
+</script>
+</body>
+</html>

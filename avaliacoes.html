@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Avaliações</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body { background: #F0F2F5; padding: 20px 16px 80px; }
+        header, nav:not(.bottom-nav), .tab-bar { display: none !important; }
+        
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin: -20px -16px 20px;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .logo { flex: 1; font-size: 18px; font-weight: 700; color: white; }
+        .logo span { color: #FF9800; background: white; padding: 2px 8px; border-radius: 12px; }
+        
+        .card { background: white; border-radius: 32px; padding: 24px; margin-bottom: 20px; }
+        h2 { color: #1C1E21; margin-bottom: 16px; border-left: 5px solid #FF9800; padding-left: 16px; font-size: 20px; }
+        
+        .estrelas { display: flex; gap: 8px; justify-content: center; margin: 20px 0; }
+        .estrela { font-size: 40px; cursor: pointer; color: #ddd; transition: transform 0.2s; }
+        .estrela.active { color: #FF9800; }
+        .estrela:active { transform: scale(1.1); }
+        
+        .media-container { text-align: center; padding: 20px; background: #F8F9FA; border-radius: 24px; margin-bottom: 20px; }
+        .media-nota { font-size: 48px; font-weight: 800; color: #FF9800; }
+        .media-estrelas { font-size: 24px; margin: 8px 0; }
+        .media-total { font-size: 13px; color: #666; }
+        
+        .avaliacao-item { padding: 16px; border-bottom: 1px solid #eee; }
+        .avaliacao-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .avaliacao-nome { font-weight: 700; color: #1C1E21; }
+        .avaliacao-estrelas { color: #FF9800; font-size: 14px; }
+        .avaliacao-comentario { color: #666; font-size: 14px; margin: 8px 0; line-height: 1.5; }
+        .avaliacao-data { font-size: 11px; color: #999; }
+        
+        textarea { width: 100%; padding: 14px; border-radius: 24px; border: 1px solid #ddd; font-size: 14px; resize: vertical; margin: 16px 0; }
+        .btn { background: #FF9800; border: none; padding: 14px; border-radius: 40px; font-weight: bold; width: 100%; cursor: pointer; font-size: 16px; }
+        
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; background: white; padding: 6px; border-radius: 48px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 40px; font-weight: 600; cursor: pointer; }
+        .tab-btn.active { background: #FF9800; color: #1C1E21; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+        
+        .toast { position: fixed; bottom: 80px; left: 16px; right: 16px; background: #1C1E21; color: white; padding: 12px; border-radius: 50px; text-align: center; z-index: 200; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        select { width: 100%; padding: 14px; border-radius: 28px; border: 1px solid #ddd; font-size: 16px; background: white; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <button class="back-btn" onclick="window.location.href='perfil.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div style="width: 40px;"></div>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="avaliar">⭐ Avaliar</button>
+    <button class="tab-btn" data-tab="recebidas">📋 Recebidas</button>
+    <button class="tab-btn" data-tab="dadas">✍️ Dadas</button>
+</div>
+
+<div id="tab-avaliar" class="tab-content active">
+    <div class="card">
+        <h2>Avaliar Profissional</h2>
+        <p style="color:#666; margin-bottom:16px;">Selecione o profissional que deseja avaliar:</p>
+        <select id="selectProfissional"><option value="">Selecione um profissional...</option></select>
+        <div id="areaAvaliacao" style="display:none;">
+            <div class="estrelas" id="estrelasAvaliacao">
+                <span class="estrela" data-valor="1">☆</span>
+                <span class="estrela" data-valor="2">☆</span>
+                <span class="estrela" data-valor="3">☆</span>
+                <span class="estrela" data-valor="4">☆</span>
+                <span class="estrela" data-valor="5">☆</span>
+            </div>
+            <textarea rows="3" id="comentarioAvaliacao" placeholder="Escreva seu comentário sobre o serviço..."></textarea>
+            <button class="btn" id="btnEnviarAvaliacao">📨 Enviar Avaliação</button>
+        </div>
+    </div>
+</div>
+
+<div id="tab-recebidas" class="tab-content">
+    <div class="card">
+        <div class="media-container">
+            <div class="media-nota" id="mediaNota">0</div>
+            <div class="media-estrelas" id="mediaEstrelas">☆☆☆☆☆</div>
+            <div class="media-total" id="mediaTotal">0 avaliações</div>
+        </div>
+        <div id="listaAvaliacoesRecebidas"><div class="empty-state">Nenhuma avaliação recebida ainda.</div></div>
+    </div>
+</div>
+
+<div id="tab-dadas" class="tab-content">
+    <div class="card">
+        <div id="listaAvaliacoesDadas"><div class="empty-state">Você ainda não avaliou ninguém.</div></div>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="chat_list.html" class="bottom-nav-item">💬 Chat</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+    <a href="perfil.html" class="bottom-nav-item">👤 Perfil</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    let currentUser = null;
+    let notaSelecionada = 0;
+    
+    function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function getTimeAgo(ts) { if(!ts) return ""; const s = Math.floor((Date.now()-ts)/1000); if(s<60) return "agora"; if(s<3600) return Math.floor(s/60)+"min"; if(s<86400) return Math.floor(s/3600)+"h"; return Math.floor(s/86400)+"d"; }
+    
+    function renderizarEstrelas(container, nota, interativo = false) {
+        container.innerHTML = '';
+        for (let i = 1; i <= 5; i++) {
+            const estrela = document.createElement('span');
+            estrela.className = 'estrela';
+            estrela.innerHTML = i <= nota ? '★' : '☆';
+            if (i <= nota) estrela.classList.add('active');
+            if (interativo) { estrela.style.cursor = 'pointer'; estrela.onclick = () => { notaSelecionada = i; renderizarEstrelas(container, i, true); }; }
+            container.appendChild(estrela);
+        }
+    }
+    
+    async function carregarProfissionais() {
+        const usersSnap = await db.ref('users').once('value');
+        const users = usersSnap.val() || {};
+        const select = document.getElementById('selectProfissional');
+        select.innerHTML = '<option value="">Selecione um profissional...</option>';
+        for (const [uid, user] of Object.entries(users)) {
+            if (uid !== currentUser?.uid && user.nome) {
+                const option = document.createElement('option');
+                option.value = uid;
+                option.textContent = `${user.nome} - ${user.profissao || 'Profissional'}`;
+                select.appendChild(option);
+            }
+        }
+        select.onchange = () => { document.getElementById('areaAvaliacao').style.display = select.value ? 'block' : 'none'; };
+    }
+    
+    document.getElementById('btnEnviarAvaliacao').onclick = async () => {
+        const profissionalId = document.getElementById('selectProfissional').value;
+        const comentario = document.getElementById('comentarioAvaliacao').value.trim();
+        if (!profissionalId) { showToast("Selecione um profissional para avaliar."); return; }
+        if (notaSelecionada === 0) { showToast("Selecione uma nota de 1 a 5 estrelas."); return; }
+        await db.ref(`avaliacoes/${profissionalId}`).push({ avaliadorId: currentUser.uid, avaliadorNome: currentUser.email, profissionalId: profissionalId, nota: notaSelecionada, comentario: comentario, timestamp: Date.now() });
+        const avaliacoesSnap = await db.ref(`avaliacoes/${profissionalId}`).once('value');
+        const avaliacoes = avaliacoesSnap.val() || {};
+        let soma = 0, count = 0;
+        Object.values(avaliacoes).forEach(a => { soma += a.nota; count++; });
+        const media = soma / count;
+        await db.ref(`users/${profissionalId}`).update({ mediaAvaliacoes: media, totalAvaliacoes: count });
+        showToast(`✅ Avaliação enviada! Nota: ${notaSelecionada} estrelas`);
+        document.getElementById('comentarioAvaliacao').value = '';
+        notaSelecionada = 0;
+        renderizarEstrelas(document.getElementById('estrelasAvaliacao'), 0, true);
+        document.getElementById('selectProfissional').value = '';
+        document.getElementById('areaAvaliacao').style.display = 'none';
+    };
+    
+    async function carregarAvaliacoesRecebidas() {
+        const avaliacoesSnap = await db.ref(`avaliacoes/${currentUser.uid}`).once('value');
+        const avaliacoes = avaliacoesSnap.val() || {};
+        let soma = 0, count = 0;
+        Object.values(avaliacoes).forEach(a => { soma += a.nota; count++; });
+        const media = count > 0 ? (soma / count).toFixed(1) : 0;
+        const mediaEstrelas = '★'.repeat(Math.round(media)) + '☆'.repeat(5 - Math.round(media));
+        document.getElementById('mediaNota').innerText = media;
+        document.getElementById('mediaEstrelas').innerHTML = mediaEstrelas;
+        document.getElementById('mediaTotal').innerText = `${count} avaliação${count !== 1 ? 'ões' : ''}`;
+        const container = document.getElementById('listaAvaliacoesRecebidas');
+        if (count === 0) { container.innerHTML = '<div class="empty-state">Nenhuma avaliação recebida ainda.</div>'; return; }
+        let html = '';
+        Object.keys(avaliacoes).forEach(key => {
+            const a = avaliacoes[key];
+            const estrelas = '★'.repeat(a.nota) + '☆'.repeat(5 - a.nota);
+            html += `<div class="avaliacao-item"><div class="avaliacao-header"><span class="avaliacao-nome">${escapeHtml(a.avaliadorNome)}</span><span class="avaliacao-estrelas">${estrelas}</span></div><div class="avaliacao-comentario">${escapeHtml(a.comentario || 'Sem comentário')}</div><div class="avaliacao-data">${getTimeAgo(a.timestamp)}</div></div>`;
+        });
+        container.innerHTML = html;
+    }
+    
+    async function carregarAvaliacoesDadas() {
+        const usersSnap = await db.ref('users').once('value');
+        const users = usersSnap.val() || {};
+        const container = document.getElementById('listaAvaliacoesDadas');
+        let html = '', temAvaliacoes = false;
+        for (const [uid, user] of Object.entries(users)) {
+            const avaliacoesSnap = await db.ref(`avaliacoes/${uid}`).orderByChild('avaliadorId').equalTo(currentUser.uid).once('value');
+            const avaliacoes = avaliacoesSnap.val() || {};
+            for (const [key, a] of Object.entries(avaliacoes)) {
+                temAvaliacoes = true;
+                const estrelas = '★'.repeat(a.nota) + '☆'.repeat(5 - a.nota);
+                html += `<div class="avaliacao-item"><div class="avaliacao-header"><span class="avaliacao-nome">${escapeHtml(user.nome || 'Profissional')}</span><span class="avaliacao-estrelas">${estrelas}</span></div><div class="avaliacao-comentario">${escapeHtml(a.comentario || 'Sem comentário')}</div><div class="avaliacao-data">${getTimeAgo(a.timestamp)}</div></div>`;
+            }
+        }
+        container.innerHTML = temAvaliacoes ? html : '<div class="empty-state">Você ainda não avaliou ninguém.</div>';
+    }
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.dataset.tab;
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            if (tab === 'recebidas') carregarAvaliacoesRecebidas();
+            if (tab === 'dadas') carregarAvaliacoesDadas();
+        });
+    });
+    
+    renderizarEstrelas(document.getElementById('estrelasAvaliacao'), 0, true);
+    auth.onAuthStateChanged(user => { if (!user) window.location.href = "login.html"; else { currentUser = user; carregarProfissionais(); carregarAvaliacoesRecebidas(); } });
+</script>
+</body>
+</html>

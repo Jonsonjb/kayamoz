@@ -1,0 +1,60 @@
+// firebase-messaging-sw.js
+importScripts('https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js');
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+    authDomain: "kayamoz-53827.firebaseapp.com",
+    databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+    projectId: "kayamoz-53827",
+    storageBucket: "kayamoz-53827.appspot.com",
+    messagingSenderId: "1056589345224",
+    appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+};
+
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+
+// Notificações em background
+messaging.onBackgroundMessage((payload) => {
+    console.log('Mensagem em background:', payload);
+    
+    const notificationTitle = payload.notification?.title || 'KayaMoz';
+    const notificationOptions = {
+        body: payload.notification?.body || 'Nova atualização!',
+        icon: '/icon-192.png',
+        badge: '/badge.png',
+        vibrate: [200, 100, 200],
+        data: {
+            url: payload.data?.url || '/page1.html',
+            click_action: payload.data?.click_action || '/page1.html'
+        }
+    };
+    
+    self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Clique na notificação - CORRIGIDO
+self.addEventListener('notificationclick', (event) => {
+    console.log('Notificação clicada:', event);
+    event.notification.close();
+    
+    // URL para abrir (usa page1.html como padrão)
+    const urlToOpen = event.notification.data?.url || '/page1.html';
+    
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((windowClients) => {
+                // Verificar se já existe uma janela aberta
+                for (let client of windowClients) {
+                    if (client.url.includes('page1.html') && 'focus' in client) {
+                        return client.focus();
+                    }
+                }
+                // Se não existir, abrir nova janela
+                if (clients.openWindow) {
+                    return clients.openWindow(urlToOpen);
+                }
+            })
+    );
+});

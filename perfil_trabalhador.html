@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Perfil Trabalhador</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #F0F2F5;
+            padding-bottom: 80px;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .logo { flex: 1; font-size: 18px; font-weight: 700; color: white; }
+        .logo span { color: #FF9800; background: white; padding: 2px 8px; border-radius: 12px; }
+        
+        .profile-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 40px 20px 30px;
+            text-align: center;
+            color: white;
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #FF9800;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-name { font-size: 24px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .verified-badge { background: #2196F3; color: white; padding: 4px 12px; border-radius: 30px; font-size: 12px; }
+        .profile-profession { font-size: 14px; opacity: 0.9; margin-bottom: 12px; }
+        .profile-location { font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.8; }
+        
+        .stats-container {
+            display: flex;
+            gap: 12px;
+            padding: 20px 16px;
+            background: white;
+            margin: -20px 16px 0;
+            border-radius: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            position: relative;
+            z-index: 2;
+        }
+        .stat-card { flex: 1; text-align: center; padding: 12px; background: #F8F9FA; border-radius: 20px; }
+        .stat-number { font-size: 22px; font-weight: 800; color: #FF9800; }
+        .stat-label { font-size: 11px; color: #666; margin-top: 4px; }
+        
+        .tabs-container { padding: 20px 16px 0; }
+        .tabs { display: flex; gap: 8px; background: white; padding: 6px; border-radius: 48px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 40px; font-weight: 600; font-size: 14px; cursor: pointer; color: #666; }
+        .tab-btn.active { background: #FF9800; color: #1C1E21; }
+        
+        .tab-content { display: none; padding: 20px 16px; }
+        .tab-content.active { display: block; }
+        
+        .info-card { background: white; border-radius: 24px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .card-title { font-size: 16px; font-weight: 700; color: #1C1E21; margin-bottom: 16px; display: flex; justify-content: space-between; border-left: 3px solid #FF9800; padding-left: 12px; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .info-label { font-size: 14px; color: #666; }
+        .info-value { font-size: 14px; font-weight: 500; color: #1C1E21; }
+        
+        .skills-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .skill-tag { background: #F0F2F5; padding: 6px 12px; border-radius: 20px; font-size: 12px; color: #666; }
+        
+        .progress-area { margin-bottom: 20px; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+        .progress-bar { background: #e0e0e0; border-radius: 20px; height: 10px; overflow: hidden; }
+        .progress-fill { background: #FF9800; width: 0%; height: 100%; border-radius: 20px; transition: width 0.3s; }
+        
+        .edit-field { margin-bottom: 16px; }
+        .edit-field label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+        .edit-field input, .edit-field select, .edit-field textarea { width: 100%; padding: 12px 14px; border-radius: 28px; border: 1px solid #ddd; font-size: 14px; background: white; }
+        .btn-save { background: #FF9800; border: none; padding: 14px; border-radius: 40px; font-weight: bold; width: 100%; margin-top: 8px; cursor: pointer; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item { text-align: center; color: #888; text-decoration: none; font-size: 11px; font-weight: 500; padding: 6px 12px; border-radius: 30px; }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+        
+        .edit-icon { background: none; border: none; font-size: 18px; cursor: pointer; }
+        .toast-notif { position: fixed; bottom: 80px; left: 16px; right: 16px; background: #1C1E21; color: white; padding: 12px; border-radius: 50px; text-align: center; z-index: 200; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <button class="back-btn" onclick="window.location.href='page1.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div style="width: 40px;"></div>
+</div>
+
+<div class="profile-header">
+    <div class="profile-avatar" id="avatarUploadArea">
+        <span id="avatarText">👤</span>
+        <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+    </div>
+    <div class="profile-name" id="profileName">Carregando...</div>
+    <div class="profile-profession" id="profileProfession">-</div>
+    <div class="profile-location" id="profileLocation">📍 -</div>
+</div>
+
+<div class="stats-container">
+    <div class="stat-card"><div class="stat-number" id="statTrabalhos">0</div><div class="stat-label">Trabalhos</div></div>
+    <div class="stat-card"><div class="stat-number" id="statAvaliacoes">0</div><div class="stat-label">Avaliações</div></div>
+    <div class="stat-card"><div class="stat-number" id="statCompletude">0%</div><div class="stat-label">Perfil</div></div>
+</div>
+
+<div class="tabs-container">
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="perfil">👤 Perfil</button>
+        <button class="tab-btn" data-tab="habilidades">🔧 Habilidades</button>
+        <button class="tab-btn" data-tab="portfolio">📸 Portfólio</button>
+        <button class="tab-btn" data-tab="trabalhos">📋 Meus Trabalhos</button>
+    </div>
+</div>
+
+<!-- Aba Perfil -->
+<div class="tab-content active" id="tab-perfil">
+    <div class="info-card">
+        <div class="card-title">📋 Dados Pessoais <button class="edit-icon" id="toggleEdit">✏️</button></div>
+        <div id="viewMode">
+            <div class="info-row"><span class="info-label">Nome completo</span><span class="info-value" id="viewNome">-</span></div>
+            <div class="info-row"><span class="info-label">Idade</span><span class="info-value" id="viewIdade">-</span></div>
+            <div class="info-row"><span class="info-label">Telefone</span><span class="info-value" id="viewTelefone">-</span></div>
+            <div class="info-row"><span class="info-label">WhatsApp</span><span class="info-value" id="viewWhatsapp">-</span></div>
+            <div class="info-row"><span class="info-label">Bairro</span><span class="info-value" id="viewBairro">-</span></div>
+            <div class="info-row"><span class="info-label">Província</span><span class="info-value" id="viewProvincia">-</span></div>
+        </div>
+        <div id="editMode" style="display:none;">
+            <div class="progress-area"><div class="progress-label"><span>Completude</span><span id="percentual">0%</span></div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div></div>
+            <div class="edit-field"><label>Nome completo</label><input type="text" id="editNome"></div>
+            <div class="edit-field"><label>Idade</label><input type="number" id="editIdade"></div>
+            <div class="edit-field"><label>Telefone (ligação)</label><input type="tel" id="editTelefone" placeholder="+258 84 123 4567"></div>
+            <div class="edit-field"><label>WhatsApp</label><input type="tel" id="editWhatsapp" placeholder="+258 84 123 4567"></div>
+            <div class="edit-field"><label>Bairro</label><input type="text" id="editBairro" placeholder="Ex: Malanga"></div>
+            <div class="edit-field"><label>Província</label><select id="editProvincia"><option>Maputo Cidade</option><option>Maputo Província</option><option>Gaza</option><option>Inhambane</option><option>Sofala</option><option>Manica</option><option>Tete</option><option>Zambézia</option><option>Nampula</option><option>Cabo Delgado</option><option>Niassa</option></select></div>
+            <button class="btn-save" id="saveProfile">💾 Salvar</button>
+        </div>
+    </div>
+    <div class="info-card">
+        <div class="card-title">✅ Verificação</div>
+        <button class="btn-save" onclick="window.location.href='verificar_perfil.html'">Verificar Perfil (50 MT)</button>
+    </div>
+</div>
+
+<!-- Aba Habilidades -->
+<div class="tab-content" id="tab-habilidades">
+    <div class="info-card">
+        <div class="card-title">🔧 Minhas Habilidades</div>
+        <div id="skillsList" class="skills-container"></div>
+        <button class="btn-save" id="btnEditarHabilidades" style="margin-top:16px;">✏️ Editar Habilidades</button>
+        <div id="editSkillsArea" style="display:none; margin-top:16px;">
+            <div class="skills-grid" style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">
+                <label><input type="checkbox" value="Construção civil"> 🏗️ Construção civil</label>
+                <label><input type="checkbox" value="Eletricidade"> ⚡ Eletricidade</label>
+                <label><input type="checkbox" value="Canalização"> 🚰 Canalização</label>
+                <label><input type="checkbox" value="Pintura"> 🎨 Pintura</label>
+                <label><input type="checkbox" value="Informática"> 💻 Informática</label>
+                <label><input type="checkbox" value="Limpeza"> 🧹 Limpeza</label>
+                <label><input type="checkbox" value="Jardinagem"> 🌿 Jardinagem</label>
+                <label><input type="checkbox" value="Corte e costura"> ✂️ Corte e costura</label>
+                <label><input type="checkbox" value="Mecânica"> 🔧 Mecânica</label>
+                <label><input type="checkbox" value="Babá/Cuidador"> 👶 Babá/Cuidador</label>
+                <label><input type="checkbox" value="Entregas"> 🛵 Entregas</label>
+                <label><input type="checkbox" value="Serigrafia"> 🖨️ Serigrafia</label>
+                <label><input type="checkbox" value="Carpintaria"> 🪚 Carpintaria</label>
+                <label><input type="checkbox" value="Soldadura"> 🔥 Soldadura</label>
+            </div>
+            <div class="edit-field"><label>Outra habilidade</label><input type="text" id="novaHabilidade" placeholder="Digite outra habilidade"></div>
+            <button class="btn-save" id="salvarHabilidades">💾 Salvar Habilidades</button>
+        </div>
+    </div>
+</div>
+
+<!-- Aba Portfólio -->
+<div class="tab-content" id="tab-portfolio">
+    <div class="info-card">
+        <div class="card-title">📸 Meu Portfólio</div>
+        <div id="portfolioGrid" style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;"></div>
+        <div class="upload-area" style="border:2px dashed #FF9800; border-radius:24px; padding:20px; text-align:center; margin-top:16px; cursor:pointer;" id="uploadArea">📤 Adicionar foto<input type="file" id="portfolioInput" accept="image/*" style="display:none;"></div>
+        <button class="btn-save" id="salvarPortfolio" style="margin-top:16px;">💾 Salvar Portfólio</button>
+    </div>
+</div>
+
+<!-- Aba Meus Trabalhos -->
+<div class="tab-content" id="tab-trabalhos">
+    <div id="meusTrabalhosLista"><div class="empty-state">📭 Carregando...</div></div>
+</div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="chat_list.html" class="bottom-nav-item">💬 Chat</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+    <a href="perfil_trabalhador.html" class="bottom-nav-item active">👤 Perfil</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const storage = firebase.storage();
+    let currentUser = null;
+    let userData = {};
+    let portfolioImages = [];
+    
+    function showToast(msg) { let toast = document.createElement('div'); toast.className = 'toast-notif'; toast.innerHTML = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function escapeHtml(str) { if(!str) return '-'; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function getTimeAgo(ts) { if(!ts) return ""; const s = Math.floor((Date.now()-ts)/1000); if(s<60) return "agora"; if(s<3600) return Math.floor(s/60)+"min"; if(s<86400) return Math.floor(s/3600)+"h"; return Math.floor(s/86400)+"d"; }
+    
+    function calcularProgresso(data) {
+        const campos = ['nome', 'idade', 'telefone', 'bairro', 'provincia'];
+        let preenchidos = 0;
+        campos.forEach(campo => { if(data[campo] && data[campo].toString().trim() !== "") preenchidos++; });
+        return Math.round((preenchidos / campos.length) * 100);
+    }
+    
+    function atualizarUI() {
+        const verifiedBadge = userData.verificado ? '<span class="verified-badge">✓ Verificado</span>' : '';
+        document.getElementById('profileName').innerHTML = `${escapeHtml(userData.nome || "Usuário")} ${verifiedBadge}`;
+        document.getElementById('profileProfession').innerText = (userData.habilidades && userData.habilidades[0]) || "Nenhuma habilidade definida";
+        document.getElementById('profileLocation').innerHTML = `📍 ${userData.bairro || "Bairro"} - ${userData.provincia || "Maputo"}`;
+        
+        const avatarDiv = document.querySelector('.profile-avatar');
+        if (userData.fotoPerfil) avatarDiv.innerHTML = `<img src="${userData.fotoPerfil}"><input type="file" id="avatarInput" accept="image/*" style="display:none;">`;
+        else avatarDiv.innerHTML = `<span id="avatarText">${userData.nome ? userData.nome.charAt(0).toUpperCase() : "👤"}</span><input type="file" id="avatarInput" accept="image/*" style="display:none;">`;
+        
+        document.getElementById('viewNome').innerText = userData.nome || "-";
+        document.getElementById('viewIdade').innerText = userData.idade || "-";
+        document.getElementById('viewTelefone').innerText = userData.telefone || "-";
+        document.getElementById('viewWhatsapp').innerText = userData.whatsapp || userData.telefone || "-";
+        document.getElementById('viewBairro').innerText = userData.bairro || "-";
+        document.getElementById('viewProvincia').innerText = userData.provincia || "Maputo";
+        
+        document.getElementById('editNome').value = userData.nome || "";
+        document.getElementById('editIdade').value = userData.idade || "";
+        document.getElementById('editTelefone').value = userData.telefone || "";
+        document.getElementById('editWhatsapp').value = userData.whatsapp || "";
+        document.getElementById('editBairro').value = userData.bairro || "";
+        document.getElementById('editProvincia').value = userData.provincia || "Maputo Cidade";
+        
+        const percent = calcularProgresso(userData);
+        document.getElementById('percentual').innerText = percent + "%";
+        document.getElementById('progressFill').style.width = percent + "%";
+        document.getElementById('statCompletude').innerText = percent + "%";
+        if(currentUser) db.ref('users/' + currentUser.uid).update({ perfilCompleto: percent, tipo: 'trabalhador' });
+        
+        // Habilidades
+        const habilidades = userData.habilidades || [];
+        const skillsContainer = document.getElementById('skillsList');
+        if (habilidades.length > 0) {
+            skillsContainer.innerHTML = habilidades.map(h => `<span class="skill-tag">${escapeHtml(h)}</span>`).join('');
+        } else {
+            skillsContainer.innerHTML = '<span style="color:#999;">Nenhuma habilidade adicionada</span>';
+        }
+        
+        // Marcar checkboxes das habilidades
+        setTimeout(() => {
+            document.querySelectorAll('#editSkillsArea input[type="checkbox"]').forEach(cb => {
+                cb.checked = habilidades.includes(cb.value);
+            });
+        }, 100);
+    }
+    
+    function carregarPerfil() { if(!currentUser) return; db.ref('users/' + currentUser.uid).on('value', (snap) => { userData = snap.val() || {}; atualizarUI(); }); }
+    
+    function salvarPerfil() {
+        if(!currentUser) return;
+        const updates = {
+            nome: document.getElementById('editNome').value,
+            idade: parseInt(document.getElementById('editIdade').value) || null,
+            telefone: document.getElementById('editTelefone').value,
+            whatsapp: document.getElementById('editWhatsapp').value,
+            bairro: document.getElementById('editBairro').value,
+            provincia: document.getElementById('editProvincia').value,
+            tipo: 'trabalhador'
+        };
+        db.ref('users/' + currentUser.uid).update(updates).then(() => { document.getElementById('toggleEdit').click(); showToast("✅ Perfil atualizado!"); });
+    }
+    
+    function salvarHabilidades() {
+        const habilidades = [];
+        document.querySelectorAll('#editSkillsArea input[type="checkbox"]:checked').forEach(cb => habilidades.push(cb.value));
+        const novaHabilidade = document.getElementById('novaHabilidade').value.trim();
+        if (novaHabilidade) habilidades.push(novaHabilidade);
+        db.ref('users/' + currentUser.uid).update({ habilidades: habilidades }).then(() => { showToast("✅ Habilidades salvas!"); document.getElementById('btnEditarHabilidades').click(); carregarPerfil(); });
+    }
+    
+    function carregarMeusTrabalhos() {
+        if(!currentUser) return;
+        db.ref('trabalhos').orderByChild('autorId').equalTo(currentUser.uid).on('value', (snap) => {
+            const trabalhos = snap.val();
+            const container = document.getElementById('meusTrabalhosLista');
+            const count = trabalhos ? Object.keys(trabalhos).length : 0;
+            document.getElementById('statTrabalhos').innerText = count;
+            if(!trabalhos || count === 0) { container.innerHTML = '<div class="empty-state">📭 Nenhum trabalho publicado.<br><br><a href="page2.html" style="color:#FF9800;">➕ Publicar meu primeiro trabalho</a></div>'; return; }
+            let html = '';
+            Object.keys(trabalhos).forEach(key => { const t = trabalhos[key]; html += `<div class="info-card"><div class="card-title">${escapeHtml(t.titulo)}</div><p>${escapeHtml(t.descricao.substring(0,100))}...</p><p style="font-size:11px; color:#999;">🕐 ${getTimeAgo(t.timestamp)}</p><button class="btn-save" style="margin-top:8px; background:#ff4444;" onclick="db.ref('trabalhos/${key}').remove().then(() => location.reload())">🗑️ Apagar</button></div>`; });
+            container.innerHTML = html;
+        });
+    }
+    
+    document.getElementById('avatarUploadArea').onclick = () => document.getElementById('avatarInput').click();
+    document.getElementById('avatarInput').onchange = async (e) => { const file = e.target.files[0]; if(!file) return; if(file.size > 2*1024*1024) { showToast("Imagem muito grande!"); return; } const storageRef = storage.ref(`usuarios/${currentUser.uid}/perfil`); await storageRef.put(file); const url = await storageRef.getDownloadURL(); await db.ref('users/' + currentUser.uid).update({ fotoPerfil: url }); showToast("✅ Foto atualizada!"); carregarPerfil(); };
+    
+    // Portfólio
+    document.getElementById('uploadArea').onclick = () => document.getElementById('portfolioInput').click();
+    document.getElementById('portfolioInput').onchange = (e) => { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (event) => { portfolioImages.push({ file: file, preview: event.target.result }); renderPortfolio(); }; reader.readAsDataURL(file); };
+    function renderPortfolio() { const container = document.getElementById('portfolioGrid'); container.innerHTML = portfolioImages.map((img, i) => `<div style="position:relative;"><img src="${img.preview}" style="width:100%; border-radius:16px; aspect-ratio:1; object-fit:cover;"><button style="position:absolute; top:5px; right:5px; background:#ff4444; color:white; border:none; border-radius:50%; width:25px; height:25px;" onclick="removerImagem(${i})">✕</button></div>`).join(''); }
+    window.removerImagem = (i) => { portfolioImages.splice(i, 1); renderPortfolio(); };
+    document.getElementById('salvarPortfolio').onclick = async () => { const imageUrls = []; for(let i=0; i<portfolioImages.length; i++) { const img = portfolioImages[i]; if(img.url) { imageUrls.push(img.url); continue; } const storageRef = storage.ref(`portfolio/${currentUser.uid}/${Date.now()}_${i}`); await storageRef.put(img.file); imageUrls.push(await storageRef.getDownloadURL()); } await db.ref(`users/${currentUser.uid}/portfolio`).set(imageUrls); showToast("✅ Portfólio salvo!"); };
+    async function carregarPortfolio() { const snap = await db.ref(`users/${currentUser.uid}/portfolio`).once('value'); const urls = snap.val() || []; portfolioImages = urls.map(url => ({ url: url, preview: url })); renderPortfolio(); }
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); btn.classList.add('active'); document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active'); }); });
+    
+    let isEditing = false;
+    document.getElementById('toggleEdit').onclick = () => { isEditing = !isEditing; document.getElementById('viewMode').style.display = isEditing ? 'none' : 'block'; document.getElementById('editMode').style.display = isEditing ? 'block' : 'none'; };
+    document.getElementById('saveProfile').onclick = salvarPerfil;
+    document.getElementById('btnEditarHabilidades').onclick = () => { const area = document.getElementById('editSkillsArea'); area.style.display = area.style.display === 'none' ? 'block' : 'none'; };
+    document.getElementById('salvarHabilidades').onclick = salvarHabilidades;
+    
+    auth.onAuthStateChanged(user => { if(!user) window.location.href = "login.html"; else { currentUser = user; carregarPerfil(); carregarMeusTrabalhos(); carregarPortfolio(); } });
+</script>
+</body>
+</html>

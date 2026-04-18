@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Mensagens</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body { background: #F0F2F5; padding-bottom: 70px; }
+        header, nav:not(.bottom-nav), .tab-bar { display: none !important; }
+        
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .logo { flex: 1; font-size: 18px; font-weight: 700; color: white; }
+        .logo span { color: #FF9800; background: white; padding: 2px 8px; border-radius: 12px; }
+        
+        .container { padding: 16px; }
+        
+        .chat-item {
+            background: white;
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .chat-item:active { transform: scale(0.98); }
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .chat-info { flex: 1; }
+        .chat-name { font-weight: 700; color: #1C1E21; margin-bottom: 4px; }
+        .chat-last-msg { font-size: 13px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        .chat-time { font-size: 10px; color: #999; }
+        .unread-badge { background: #FF9800; color: #1C1E21; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: bold; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <button class="back-btn" onclick="window.location.href='page1.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div style="width: 40px;"></div>
+</div>
+
+<div class="container" id="chatsContainer">
+    <div style="text-align:center; padding:40px;">A carregar conversas...</div>
+</div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="chat_list.html" class="bottom-nav-item active">💬 Chat</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+    <a href="perfil.html" class="bottom-nav-item">👤 Perfil</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+    let currentUser = null;
+    
+    function getTimeAgo(timestamp) {
+        if (!timestamp) return "";
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        if (seconds < 60) return "agora";
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h`;
+        const days = Math.floor(hours / 24);
+        return `${days}d`;
+    }
+    
+    function getInitials(name) { if (!name) return "?"; return name.charAt(0).toUpperCase(); }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    
+    function carregarConversas() {
+        const container = document.getElementById('chatsContainer');
+        database.ref(`chats/${currentUser.uid}`).orderByChild('timestamp').once('value', (snap) => {
+            const chats = snap.val();
+            if (!chats || Object.keys(chats).length === 0) {
+                container.innerHTML = '<div class="empty-state">💬 Nenhuma conversa ainda.<br><br>Contacte alguém no mural para iniciar um chat!</div>';
+                return;
+            }
+            let html = '';
+            const chatsArray = Object.keys(chats).map(key => ({ id: key, ...chats[key] }));
+            chatsArray.sort((a, b) => (b.ultimaMsg?.timestamp || 0) - (a.ultimaMsg?.timestamp || 0));
+            chatsArray.forEach(chat => {
+                const outroId = chat.id;
+                const nome = chat.outroNome || "Usuário";
+                const ultimaMsg = chat.ultimaMsg?.texto || "Nenhuma mensagem";
+                const timeAgo = getTimeAgo(chat.ultimaMsg?.timestamp);
+                const naoLidas = chat.naoLidas || 0;
+                html += `<div class="chat-item" onclick="window.location.href='chat_direct.html?userId=${outroId}&nome=${encodeURIComponent(nome)}'"><div class="chat-avatar">${getInitials(nome)}</div><div class="chat-info"><div class="chat-name">${escapeHtml(nome)}</div><div class="chat-last-msg">${escapeHtml(ultimaMsg.substring(0, 50))}</div></div><div class="chat-time">${timeAgo}</div>${naoLidas > 0 ? `<div class="unread-badge">${naoLidas}</div>` : ''}</div>`;
+            });
+            container.innerHTML = html;
+        });
+    }
+    
+    auth.onAuthStateChanged(user => {
+        if (!user) window.location.href = "login.html";
+        else { currentUser = user; carregarConversas(); database.ref(`chats/${currentUser.uid}`).on('child_changed', () => carregarConversas()); }
+    });
+</script>
+</body>
+</html>

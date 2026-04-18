@@ -1,0 +1,58 @@
+// service-worker.js
+const CACHE_NAME = 'kayamoz-v1.0.0';
+const urlsToCache = [
+    '/',
+    '/index.html',
+    '/login.html',
+    '/page1.html',
+    '/page2.html',
+    '/perfil.html',
+    '/offline.html'
+];
+
+self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => cache.addAll(urlsToCache))
+    );
+});
+
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request)
+            .then(response => response || fetch(event.request))
+            .catch(() => caches.match('/offline.html'))
+    );
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
+                })
+            );
+        })
+    );
+});
+
+// Clique na notificação - CORRIGIDO
+self.addEventListener('notificationclick', (event) => {
+    console.log('Notificação clicada (service-worker)');
+    event.notification.close();
+    
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then(windowClients => {
+                // Procurar janela do KayaMoz já aberta
+                for (let client of windowClients) {
+                    if (client.url.includes('page1.html') || client.url.includes('index.html')) {
+                        return client.focus();
+                    }
+                }
+                // Abrir nova janela
+                return clients.openWindow('/page1.html');
+            })
+    );
+});

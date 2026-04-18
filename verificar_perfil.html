@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Verificar Perfil</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #F0F2F5;
+            padding: 20px 16px 80px;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin: -20px -16px 20px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .logo {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+        }
+        .logo span {
+            color: #FF9800;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #1C1E21;
+            margin-bottom: 16px;
+            border-left: 5px solid #FF9800;
+            padding-left: 16px;
+            font-size: 20px;
+        }
+        
+        .selo-info {
+            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+            padding: 20px;
+            border-radius: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .selo-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .selo-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1565C0;
+        }
+        .selo-price {
+            font-size: 28px;
+            font-weight: 800;
+            color: #FF9800;
+            margin: 10px 0;
+        }
+        .benefits {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+        }
+        .benefits li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .payment-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .method {
+            background: #F8F9FA;
+            padding: 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .method.active {
+            background: #FFF3E0;
+            border: 1px solid #FF9800;
+        }
+        .method-icon {
+            font-size: 28px;
+        }
+        .method-name {
+            font-weight: 700;
+        }
+        .method-number {
+            font-size: 13px;
+            color: #666;
+            font-family: monospace;
+        }
+        
+        .btn {
+            background: #FF9800;
+            border: none;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .btn-whatsapp {
+            background: #25D366;
+            margin-top: 10px;
+        }
+        .btn-secondary {
+            background: #1C1E21;
+            color: white;
+        }
+        
+        .code-input {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .code-input input {
+            width: 220px;
+            padding: 14px;
+            border-radius: 40px;
+            border: 1px solid #ddd;
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+        
+        .instrucoes {
+            background: #FFF8E1;
+            padding: 16px;
+            border-radius: 20px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active {
+            color: #FF9800;
+            background: #FFF3E0;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 16px;
+            right: 16px;
+            background: #1C1E21;
+            color: white;
+            padding: 12px;
+            border-radius: 50px;
+            text-align: center;
+            z-index: 200;
+        }
+        
+        .copy-btn {
+            background: #e0e0e0;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <button class="back-btn" onclick="window.location.href='perfil.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div style="width: 40px;"></div>
+</div>
+
+<div class="card">
+    <h2>✅ Verificação de Perfil</h2>
+    <div class="selo-info">
+        <div class="selo-icon">✅</div>
+        <div class="selo-title">Selo de Verificado</div>
+        <div class="selo-price">50 MT</div>
+        <ul class="benefits">
+            <li>🏆 Selo azul no seu perfil</li>
+            <li>📈 Maior visibilidade nos resultados</li>
+            <li>⭐ Destaque nos cards de talento</li>
+            <li>🎯 Mais confiança para os clientes</li>
+        </ul>
+    </div>
+    
+    <div id="statusArea"></div>
+</div>
+
+<div class="card" id="pagamentoArea">
+    <h2>💰 Métodos de Pagamento</h2>
+    <div class="payment-methods">
+        <div class="method active" data-method="emola" data-number="874786943">
+            <div class="method-icon">📱</div>
+            <div class="method-info">
+                <div class="method-name">E-Mola</div>
+                <div class="method-number">874786943 <button class="copy-btn" onclick="copiarNumero('874786943')">Copiar</button></div>
+            </div>
+        </div>
+        <div class="method" data-method="mpesa" data-number="856803837">
+            <div class="method-icon">💳</div>
+            <div class="method-info">
+                <div class="method-name">M-Pesa</div>
+                <div class="method-number">856803837 <button class="copy-btn" onclick="copiarNumero('856803837')">Copiar</button></div>
+            </div>
+        </div>
+        <div class="method" data-method="tmcel" data-number="835109190">
+            <div class="method-icon">📞</div>
+            <div class="method-info">
+                <div class="method-name">Tmcel</div>
+                <div class="method-number">835109190 <button class="copy-btn" onclick="copiarNumero('835109190')">Copiar</button></div>
+            </div>
+        </div>
+        <div class="method" data-method="paypal" data-number="johsondagloria@gmail.com">
+            <div class="method-icon">🌐</div>
+            <div class="method-info">
+                <div class="method-name">PayPal</div>
+                <div class="method-number">johsondagloria@gmail.com <button class="copy-btn" onclick="copiarNumero('johsondagloria@gmail.com')">Copiar</button></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="instrucoes">
+        📌 <strong>Como verificar seu perfil:</strong><br><br>
+        1️⃣ Faça o pagamento de <strong>50 MT</strong> para um dos números acima<br>
+        2️⃣ Tire um print do comprovativo<br>
+        3️⃣ Envie o comprovativo pelo WhatsApp clicando no botão abaixo<br>
+        4️⃣ Aguarde a confirmação (até 24h)<br>
+        5️⃣ Você receberá um código de ativação
+    </div>
+    
+    <button class="btn btn-whatsapp" id="btnWhatsapp">📱 Enviar Comprovativo via WhatsApp</button>
+</div>
+
+<div class="card" id="codigoArea" style="display:none;">
+    <h2>🔐 Ativar Selo</h2>
+    <p style="color:#666; margin-bottom:16px;">Digite o código de ativação que recebeu no WhatsApp:</p>
+    <div class="code-input">
+        <input type="text" id="codigoInput" maxlength="6" placeholder="_____" style="font-size:24px; text-align:center;">
+    </div>
+    <button class="btn btn-secondary" id="ativarCodigo">Ativar Selo</button>
+</div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="chat_list.html" class="bottom-nav-item">💬 Chat</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+    <a href="perfil.html" class="bottom-nav-item">👤 Perfil</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+    let currentUser = null;
+    let selectedNumber = "874786943";
+    
+    // LISTA DE CÓDIGOS AUTORIZADOS (SÓ VOCÊ SABE)
+    const CODIGOS_AUTORIZADOS = ["25020", "25022", "59911", "94386", "313132"];
+    
+    function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    
+    function copiarNumero(numero) {
+        navigator.clipboard.writeText(numero);
+        showToast("📋 Número copiado!");
+    }
+    
+    document.querySelectorAll('.method').forEach(m => {
+        m.addEventListener('click', () => {
+            document.querySelectorAll('.method').forEach(m2 => m2.classList.remove('active'));
+            m.classList.add('active');
+            selectedNumber = m.getAttribute('data-number');
+        });
+    });
+    
+    document.getElementById('btnWhatsapp').onclick = () => {
+        const metodo = document.querySelector('.method.active')?.getAttribute('data-method') || "emola";
+        const mensagem = `*SOLICITAÇÃO DE VERIFICAÇÃO KAYAMOZ*\n\nOlá! Gostaria de verificar meu perfil.\n\n📧 E-mail: ${currentUser?.email}\n💰 Valor: 50 MT\n📱 Método: ${metodo}\n📅 Data: ${new Date().toLocaleString()}\n\nAguardando código de ativação.`;
+        
+        database.ref(`verificacoes/${currentUser?.uid}`).set({
+            userId: currentUser?.uid,
+            userEmail: currentUser?.email,
+            status: "pendente",
+            metodo: metodo,
+            timestamp: Date.now(),
+            valor: 50
+        });
+        database.ref(`users/${currentUser?.uid}/verificacaoStatus`).set("pendente");
+        
+        window.open(`https://wa.me/258874786943?text=${encodeURIComponent(mensagem)}`, '_blank');
+        showToast("✅ Solicitação enviada! Aguarde o código.");
+        document.getElementById('pagamentoArea').style.display = 'none';
+        document.getElementById('codigoArea').style.display = 'block';
+    };
+    
+    document.getElementById('ativarCodigo').onclick = async () => {
+        const codigo = document.getElementById('codigoInput').value.trim();
+        
+        if (CODIGOS_AUTORIZADOS.includes(codigo)) {
+            const codigoUsadoSnap = await database.ref(`codigos_usados/${codigo}`).once('value');
+            if (codigoUsadoSnap.exists()) {
+                showToast("❌ Este código já foi utilizado!");
+                return;
+            }
+            
+            await database.ref(`codigos_usados/${codigo}`).set({
+                usadoPor: currentUser?.uid,
+                usuarioEmail: currentUser?.email,
+                data: Date.now()
+            });
+            
+            await database.ref(`users/${currentUser?.uid}`).update({ 
+                verificado: true, 
+                verificadoEm: Date.now(), 
+                verificacaoStatus: "verificado",
+                codigoUsado: codigo
+            });
+            await database.ref(`verificacoes/${currentUser?.uid}`).update({ 
+                status: "verificado", 
+                codigoAtivacao: codigo,
+                ativadoEm: Date.now()
+            });
+            
+            showToast("✅ Parabéns! Seu perfil agora é VERIFICADO! 🎉");
+            setTimeout(() => window.location.href = "perfil.html", 2000);
+        } else {
+            showToast("❌ Código inválido!");
+        }
+    };
+    
+    function carregarStatus() {
+        database.ref(`users/${currentUser?.uid}/verificado`).once('value', (snap) => {
+            if (snap.val() === true) {
+                document.getElementById('statusArea').innerHTML = `<div style="text-align:center;padding:20px;background:#E8F5E9;border-radius:24px;"><div style="font-size:48px;">✅</div><h3 style="color:#2E7D32;">Perfil Verificado!</h3></div>`;
+                document.getElementById('pagamentoArea').style.display = 'none';
+                document.getElementById('codigoArea').style.display = 'none';
+            } else {
+                database.ref(`verificacoes/${currentUser?.uid}/status`).once('value', (snap) => {
+                    if (snap.val() === "pendente") {
+                        document.getElementById('statusArea').innerHTML = `<div style="text-align:center;padding:20px;background:#FFF3E0;border-radius:24px;"><div style="font-size:48px;">⏳</div><h3 style="color:#FF9800;">Verificação Pendente</h3><p>Aguardando confirmação.</p></div>`;
+                    }
+                });
+            }
+        });
+    }
+    
+    auth.onAuthStateChanged(user => { if (!user) window.location.href = "login.html"; else { currentUser = user; carregarStatus(); } });
+</script>
+</body>
+</html>

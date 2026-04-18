@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Meus Pontos</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body { background: #F0F2F5; padding: 20px 16px 80px; }
+        header, nav:not(.bottom-nav), .tab-bar { display: none !important; }
+        
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin: -20px -16px 20px;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .logo { flex: 1; font-size: 18px; font-weight: 700; color: white; }
+        .logo span { color: #FF9800; background: white; padding: 2px 8px; border-radius: 12px; }
+        
+        .card { background: white; border-radius: 32px; padding: 24px; margin-bottom: 20px; }
+        h2 { color: #1C1E21; margin-bottom: 16px; border-left: 5px solid #FF9800; padding-left: 16px; font-size: 20px; }
+        
+        .pontos-card { background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%); color: white; text-align: center; padding: 30px; border-radius: 32px; margin-bottom: 20px; }
+        .pontos-valor { font-size: 48px; font-weight: 800; margin: 10px 0; }
+        .pontos-label { font-size: 14px; opacity: 0.8; }
+        
+        .btn { background: #FF9800; border: none; padding: 14px; border-radius: 40px; font-weight: bold; width: 100%; margin-top: 12px; cursor: pointer; font-size: 16px; }
+        .btn-secondary { background: #1C1E21; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
+        
+        .codigo-area { background: #F8F9FA; padding: 20px; border-radius: 24px; text-align: center; margin: 16px 0; }
+        .codigo { font-size: 28px; font-weight: 800; letter-spacing: 4px; background: white; padding: 12px; border-radius: 16px; margin: 10px 0; font-family: monospace; }
+        
+        .historico-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .historico-pontos { font-weight: bold; color: #FF9800; }
+        .historico-data { font-size: 11px; color: #999; }
+        
+        .top10-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #F8F9FA; border-radius: 20px; margin-bottom: 10px; }
+        .top10-rank { font-size: 20px; font-weight: 800; width: 40px; text-align: center; }
+        .top10-avatar { width: 40px; height: 40px; border-radius: 50%; background: #FF9800; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+        .top10-info { flex: 1; }
+        .top10-nome { font-weight: 700; }
+        .top10-pontos { font-size: 12px; color: #FF9800; }
+        
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; background: white; padding: 6px; border-radius: 48px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 40px; font-weight: 600; cursor: pointer; }
+        .tab-btn.active { background: #FF9800; color: #1C1E21; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+        
+        .toast { position: fixed; bottom: 80px; left: 16px; right: 16px; background: #1C1E21; color: white; padding: 12px; border-radius: 50px; text-align: center; z-index: 200; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <button class="back-btn" onclick="window.location.href='perfil.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div style="width: 40px;"></div>
+</div>
+
+<div class="pontos-card">
+    <div class="pontos-label">💰 Meus Pontos</div>
+    <div class="pontos-valor" id="pontosTotal">0 MT</div>
+    <div class="pontos-label">acumulados</div>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="ganhar">🎁 Ganhar</button>
+    <button class="tab-btn" data-tab="usar">🛒 Usar</button>
+    <button class="tab-btn" data-tab="historico">📜 Histórico</button>
+    <button class="tab-btn" data-tab="top10">🏆 Top 10</button>
+</div>
+
+<div id="tab-ganhar" class="tab-content active">
+    <div class="card">
+        <h2>📱 Compartilhar App</h2>
+        <p style="color:#666; margin-bottom:16px;">Compartilhe o KayaMoz e ganhe <strong>2 MT</strong> por dia!</p>
+        <button class="btn btn-success" id="btnCompartilhar">📤 Compartilhar Agora (+2 MT)</button>
+    </div>
+    <div class="card">
+        <h2>🔑 Código de Indicação</h2>
+        <p style="color:#666; margin-bottom:8px;">Compartilhe seu código. Quando alguém se cadastrar, você ganha <strong>10 MT</strong>!</p>
+        <div class="codigo-area"><div style="font-size:12px; color:#666;">Seu código único:</div><div class="codigo" id="codigoIndicacao">Carregando...</div><button class="btn-secondary" id="btnCopiarCodigo" style="margin-top:8px;">📋 Copiar Código</button></div>
+    </div>
+    <div class="card">
+        <h2>⭐ Bónus Diário</h2>
+        <p style="color:#666; margin-bottom:16px;">Faça login diariamente e ganhe <strong>0.5 MT</strong>!</p>
+        <button class="btn" id="btnBonusDiario">🎁 Resgatar Bónus Diário</button>
+    </div>
+</div>
+
+<div id="tab-usar" class="tab-content">
+    <div class="card">
+        <h2>✅ Verificar Perfil</h2>
+        <p style="color:#666; margin-bottom:8px;">Use 50 MT para verificar seu perfil e ganhar o selo azul!</p>
+        <div style="background:#F8F9FA; padding:15px; border-radius:20px; margin:10px 0; text-align:center;"><span style="font-size:24px;">🎫 50 MT</span></div>
+        <button class="btn" id="btnVerificarComPontos">✅ Verificar Perfil com Pontos</button>
+    </div>
+    <div class="card">
+        <h2>🏆 Top 10 da Semana</h2>
+        <p style="color:#666; margin-bottom:8px;">Use 30 MT para entrar no ranking dos destaques da semana!</p>
+        <div style="background:#F8F9FA; padding:15px; border-radius:20px; margin:10px 0; text-align:center;"><span style="font-size:24px;">🎫 30 MT</span></div>
+        <button class="btn" id="btnEntrarTop10">🏆 Entrar no Top 10</button>
+    </div>
+</div>
+
+<div id="tab-historico" class="tab-content"><div class="card"><h2>📜 Histórico</h2><div id="historicoLista"><div class="empty-state">Nenhuma transação ainda.</div></div></div></div>
+<div id="tab-top10" class="tab-content"><div class="card"><h2>🏆 Top 10 da Semana</h2><div id="top10Lista"><div class="empty-state">Carregando...</div></div></div></div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="chat_list.html" class="bottom-nav-item">💬 Chat</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+    <a href="perfil.html" class="bottom-nav-item">👤 Perfil</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    let currentUser = null;
+    let userPontos = 0;
+    
+    function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function gerarCodigo(uid) { return uid.substring(0, 8).toUpperCase(); }
+    
+    async function adicionarPontos(valor, motivo) { if (!currentUser) return false; const novoTotal = userPontos + valor; await db.ref(`pontos/${currentUser.uid}/historico`).push({ valor: valor, motivo: motivo, tipo: "credito", data: Date.now(), saldoAnterior: userPontos, saldoNovo: novoTotal }); await db.ref(`pontos/${currentUser.uid}/saldo`).set(novoTotal); userPontos = novoTotal; document.getElementById('pontosTotal').innerText = userPontos + " MT"; showToast(`✅ +${valor} MT! ${motivo}`); carregarHistorico(); return true; }
+    async function usarPontos(valor, motivo) { if (!currentUser) return false; if (userPontos < valor) { showToast(`❌ Pontos insuficientes! Você tem ${userPontos} MT.`); return false; } const novoTotal = userPontos - valor; await db.ref(`pontos/${currentUser.uid}/historico`).push({ valor: valor, motivo: motivo, tipo: "debito", data: Date.now(), saldoAnterior: userPontos, saldoNovo: novoTotal }); await db.ref(`pontos/${currentUser.uid}/saldo`).set(novoTotal); userPontos = novoTotal; document.getElementById('pontosTotal').innerText = userPontos + " MT"; showToast(`✅ Usou ${valor} MT para ${motivo}!`); carregarHistorico(); return true; }
+    
+    async function carregarPontos() { const snap = await db.ref(`pontos/${currentUser.uid}/saldo`).once('value'); userPontos = snap.val() || 0; document.getElementById('pontosTotal').innerText = userPontos + " MT"; const hoje = new Date().toDateString(); const bonusSnap = await db.ref(`pontos/${currentUser.uid}/ultimoBonus`).once('value'); if (bonusSnap.val() === hoje) { document.getElementById('btnBonusDiario').disabled = true; document.getElementById('btnBonusDiario').style.opacity = '0.5'; document.getElementById('btnBonusDiario').innerText = '✅ Bónus já resgatado hoje!'; } else { document.getElementById('btnBonusDiario').disabled = false; document.getElementById('btnBonusDiario').style.opacity = '1'; document.getElementById('btnBonusDiario').innerText = '🎁 Resgatar Bónus Diário (+0.5 MT)'; } }
+    
+    async function carregarHistorico() { const snap = await db.ref(`pontos/${currentUser.uid}/historico`).orderByChild('data').limitToLast(20).once('value'); const historico = snap.val() || {}; const container = document.getElementById('historicoLista'); if (Object.keys(historico).length === 0) { container.innerHTML = '<div class="empty-state">Nenhuma transação ainda.</div>'; return; } let html = ''; Object.keys(historico).reverse().forEach(key => { const t = historico[key]; html += `<div class="historico-item"><div class="historico-desc">${escapeHtml(t.motivo)}<div class="historico-data">${new Date(t.data).toLocaleString('pt-PT')}</div></div><div class="historico-pontos">${t.tipo === 'credito' ? '+' : '-'} ${t.valor} MT</div></div>`; }); container.innerHTML = html; }
+    
+    async function carregarTop10() { const usersSnap = await db.ref('users').once('value'); const users = usersSnap.val() || {}; const top10 = []; for (const [uid, user] of Object.entries(users)) { const pontosSnap = await db.ref(`pontos/${uid}/saldo`).once('value'); const pontos = pontosSnap.val() || 0; if (pontos > 0) top10.push({ uid, nome: user.nome || "Usuário", pontos: pontos }); } top10.sort((a, b) => b.pontos - a.pontos); const top10Lista = top10.slice(0, 10); const container = document.getElementById('top10Lista'); if (top10Lista.length === 0) { container.innerHTML = '<div class="empty-state">Nenhum usuário no ranking ainda.</div>'; return; } let html = ''; top10Lista.forEach((u, idx) => { html += `<div class="top10-item"><div class="top10-rank">${idx + 1}º</div><div class="top10-avatar">${u.nome.charAt(0).toUpperCase()}</div><div class="top10-info"><div class="top10-nome">${escapeHtml(u.nome)}</div><div class="top10-pontos">💰 ${u.pontos} MT</div></div>${idx === 0 ? '<span>🏆</span>' : ''}</div>`; }); container.innerHTML = html; }
+    
+    document.getElementById('btnCompartilhar').onclick = async () => { const hoje = new Date().toDateString(); const ultimoShareSnap = await db.ref(`pontos/${currentUser.uid}/ultimoShare`).once('value'); if (ultimoShareSnap.val() === hoje) { showToast("⚠️ Você já ganhou pontos por compartilhar hoje!"); return; } await db.ref(`pontos/${currentUser.uid}/ultimoShare`).set(hoje); await adicionarPontos(2, "Compartilhou o App"); const shareText = `📢 KayaMoz - Trabalho real no seu bairro!\n\nUse meu código: ${gerarCodigo(currentUser.uid)}\nBaixe agora: https://kayamoz.page.link/download`; if (navigator.share) navigator.share({ title: 'KayaMoz', text: shareText }); else navigator.clipboard.writeText(shareText); showToast("📋 Link copiado!"); };
+    document.getElementById('btnCopiarCodigo').onclick = () => { navigator.clipboard.writeText(gerarCodigo(currentUser.uid)); showToast("📋 Código copiado!"); };
+    document.getElementById('btnBonusDiario').onclick = async () => { const hoje = new Date().toDateString(); const bonusSnap = await db.ref(`pontos/${currentUser.uid}/ultimoBonus`).once('value'); if (bonusSnap.val() === hoje) { showToast("⚠️ Você já resgatou o bónus hoje!"); return; } await db.ref(`pontos/${currentUser.uid}/ultimoBonus`).set(hoje); await adicionarPontos(0.5, "Bónus diário de login"); };
+    document.getElementById('btnVerificarComPontos').onclick = async () => { if (await usarPontos(50, "Verificação de perfil")) { await db.ref(`users/${currentUser.uid}`).update({ verificado: true, verificadoEm: Date.now(), verificacaoStatus: "verificado" }); showToast("✅ Parabéns! Seu perfil agora é VERIFICADO!"); setTimeout(() => window.location.href = "perfil.html", 2000); } };
+    document.getElementById('btnEntrarTop10').onclick = async () => { if (await usarPontos(30, "Entrada no Top 10")) { showToast("🏆 Você entrou no Top 10 da semana!"); carregarTop10(); } };
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); const tab = btn.dataset.tab; document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(`tab-${tab}`).classList.add('active'); if (tab === 'top10') carregarTop10(); if (tab === 'historico') carregarHistorico(); }); });
+    
+    auth.onAuthStateChanged(user => { if (!user) window.location.href = "login.html"; else { currentUser = user; carregarPontos(); carregarHistorico(); document.getElementById('codigoIndicacao').innerText = gerarCodigo(currentUser.uid); } });
+</script>
+</body>
+</html>

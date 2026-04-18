@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>KayaMoz</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#FF9800">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KayaMoz">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <meta name="description" content="KayaMoz - Trabalho real no teu bairro">
+    <meta property="og:title" content="KayaMoz - Trabalho real no teu bairro">
+    <meta property="og:description" content="Encontre e contrate profissionais perto de você.">
+    <meta property="og:image" content="icon-512.png">
+    <meta property="og:type" content="website">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        .splash { text-align: center; color: white; animation: fadeIn 0.8s ease; }
+        .logo { font-size: 56px; font-weight: 800; margin-bottom: 16px; letter-spacing: -1px; }
+        .logo span { background: white; color: #FF9800; padding: 0 8px; border-radius: 16px; }
+        .slogan { font-size: 14px; opacity: 0.9; margin-bottom: 40px; }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; }
+        .progress-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 4px; margin: 20px auto; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: white; border-radius: 4px; animation: progress 2s ease infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes progress { 0% { width: 0%; } 50% { width: 70%; } 100% { width: 100%; } }
+        .versao { position: fixed; bottom: 20px; font-size: 11px; opacity: 0.5; color: white; }
+    </style>
+</head>
+<body>
+    <div class="splash">
+        <div class="logo">Kaya<span>Moz</span></div>
+        <div class="slogan">Trabalho real. No teu bairro.</div>
+        <div class="spinner"></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+        <div class="versao">v2.0.0</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+            authDomain: "kayamoz-53827.firebaseapp.com",
+            databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+            projectId: "kayamoz-53827",
+            storageBucket: "kayamoz-53827.appspot.com",
+            messagingSenderId: "1056589345224",
+            appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+        };
+        
+        // Registrar Service Workers
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Service Worker para cache offline
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('Service Worker offline registrado:', reg))
+                    .catch(err => console.log('Erro SW offline:', err));
+                
+                // Service Worker para notificações push
+                navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                    .then(reg => console.log('Service Worker push registrado:', reg))
+                    .catch(err => console.log('Erro SW push:', err));
+            });
+        }
+        
+        // Detectar conexão
+        window.addEventListener('online', () => console.log('🌐 Conexão restaurada'));
+        window.addEventListener('offline', () => console.log('⚠️ Sem conexão'));
+        
+        // Carregar Firebase
+        const script = document.createElement('script');
+        script.src = "https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js";
+        script.onload = () => {
+            const authScript = document.createElement('script');
+            authScript.src = "https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js";
+            authScript.onload = () => {
+                firebase.initializeApp(firebaseConfig);
+                const auth = firebase.auth();
+                auth.onAuthStateChanged((user) => {
+                    setTimeout(() => {
+                        if (user) window.location.href = "page1.html";
+                        else window.location.href = "login.html";
+                    }, 2000);
+                });
+            };
+            document.head.appendChild(authScript);
+        };
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

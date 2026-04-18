@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Firebase</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <h1>Teste Firebase</h1>
+    <button onclick="testarConexao()">Testar Conexão</button>
+    <button onclick="salvarTeste()">Salvar Teste</button>
+    <button onclick="carregarTeste()">Carregar Teste</button>
+    <div id="resultado"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+            authDomain: "kayamoz-53827.firebaseapp.com",
+            databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+            projectId: "kayamoz-53827",
+            storageBucket: "kayamoz-53827.appspot.com",
+            messagingSenderId: "1056589345224",
+            appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+        };
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        const db = firebase.database();
+        const resultado = document.getElementById('resultado');
+        
+        function testarConexao() {
+            db.ref('.info/connected').on('value', (snap) => {
+                if (snap.val() === true) {
+                    resultado.innerHTML = '<p style="color:green">✅ Firebase conectado!</p>';
+                } else {
+                    resultado.innerHTML = '<p style="color:red">❌ Firebase desconectado!</p>';
+                }
+            });
+        }
+        
+        function salvarTeste() {
+            db.ref('teste').set({
+                mensagem: "KayaMoz está funcionando!",
+                data: Date.now()
+            }).then(() => {
+                resultado.innerHTML = '<p style="color:green">✅ Dados salvos com sucesso!</p>';
+            }).catch(err => {
+                resultado.innerHTML = '<p style="color:red">❌ Erro: ' + err.message + '</p>';
+            });
+        }
+        
+        function carregarTeste() {
+            db.ref('teste').once('value').then((snap) => {
+                const dados = snap.val();
+                resultado.innerHTML = '<p>📦 Dados: ' + JSON.stringify(dados) + '</p>';
+            }).catch(err => {
+                resultado.innerHTML = '<p style="color:red">❌ Erro: ' + err.message + '</p>';
+            });
+        }
+        
+        testarConexao();
+    </script>
+</body>
+</html> 

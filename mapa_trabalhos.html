@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Mapa de Trabalhos</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body { background: #F0F2F5; height: 100vh; display: flex; flex-direction: column; }
+        header, nav:not(.bottom-nav), .tab-bar { display: none !important; }
+        
+        .header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .header h1 { font-size: 18px; font-weight: 600; flex: 1; }
+        .location-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 30px; font-size: 12px; cursor: pointer; }
+        
+        .tipo-switch {
+            position: fixed;
+            top: 70px;
+            left: 16px;
+            right: 16px;
+            background: white;
+            border-radius: 48px;
+            padding: 6px;
+            display: flex;
+            gap: 8px;
+            z-index: 150;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .tipo-btn { flex: 1; padding: 10px; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; background: #F0F2F5; color: #666; }
+        .tipo-btn.active { background: #FF9800; color: #1C1E21; }
+        
+        #map { flex: 1; width: 100%; margin-top: 120px; }
+        
+        .info-panel {
+            position: fixed;
+            bottom: 70px;
+            left: 16px;
+            right: 16px;
+            background: white;
+            border-radius: 28px;
+            padding: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 200;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 45%;
+            overflow-y: auto;
+        }
+        .info-panel.show { transform: translateY(0); }
+        .close-panel { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
+        .btn-chat { background: #25D366; color: white; border: none; padding: 10px; border-radius: 30px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 12px; }
+        .preco { font-size: 18px; font-weight: bold; color: #FF9800; margin: 8px 0; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-left: 8px; }
+        .badge-trabalho { background: #4CAF50; color: white; }
+        .badge-vaga { background: #2196F3; color: white; }
+        
+        .legend {
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 200;
+        }
+        .legend span { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 4px; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+        
+        .toast { position: fixed; bottom: 100px; left: 16px; right: 16px; background: #1C1E21; color: white; padding: 12px; border-radius: 50px; text-align: center; z-index: 300; }
+        .loading-overlay { position: fixed; top: 120px; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 150; }
+        .loading-spinner { background: white; padding: 20px; border-radius: 50px; display: flex; align-items: center; gap: 12px; }
+        .spinner { width: 24px; height: 24px; border: 3px solid #FF9800; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="back-btn" onclick="window.location.href='page1.html'">←</button>
+    <h1>📍 Mapa de Trabalhos</h1>
+    <button class="location-btn" id="myLocationBtn">📍 Minha Localização</button>
+</div>
+
+<div class="tipo-switch">
+    <button class="tipo-btn active" data-tipo="trabalhos">📋 Trabalhos</button>
+    <button class="tipo-btn" data-tipo="vagas">💼 Vagas</button>
+    <button class="tipo-btn" data-tipo="ambos">🔄 Ambos</button>
+</div>
+
+<div id="map"></div>
+<div class="legend"><span style="background:#4CAF50;"></span> Trabalhos <span style="background:#2196F3; margin-left:8px;"></span> Vagas <span style="background:#FF9800; margin-left:8px;"></span> Você</div>
+
+<div class="info-panel" id="infoPanel"><button class="close-panel" id="closePanel">✕</button><div id="panelContent"><h4>Carregando...</h4></div></div>
+<div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"><div class="spinner"></div><span>A carregar mapa...</span></div></div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="chat_list.html" class="bottom-nav-item">💬 Chat</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item active">🗺️ Mapa</a>
+    <a href="perfil.html" class="bottom-nav-item">👤 Perfil</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+    let currentUser = null;
+    let map = null;
+    let markers = [];
+    let userMarker = null;
+    let currentTipo = "trabalhos";
+    const MAPUTO_CENTER = [-25.969, 32.573];
+    
+    function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function formatWhatsAppNumber(t) { if(!t) return null; let n = t.replace(/\D/g,''); if(n.startsWith('0')) n='258'+n.substring(1); else if(!n.startsWith('258')) n='258'+n; return n; }
+    
+    function initMap(lat, lng) { if(map) { map.setView([lat, lng], 13); return; } map = L.map('map').setView([lat, lng], 13); L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CartoDB', subdomains: 'abcd', maxZoom: 19 }).addTo(map); document.getElementById('loadingOverlay').style.display = 'none'; }
+    
+    function getUserLocation() { if(!navigator.geolocation) { initMap(MAPUTO_CENTER[0], MAPUTO_CENTER[1]); showToast("Usando Maputo como padrão."); carregarItensProximos(MAPUTO_CENTER[0], MAPUTO_CENTER[1]); return; } navigator.geolocation.getCurrentPosition( (position) => { initMap(position.coords.latitude, position.coords.longitude); addUserMarker(position.coords.latitude, position.coords.longitude); carregarItensProximos(position.coords.latitude, position.coords.longitude); }, () => { initMap(MAPUTO_CENTER[0], MAPUTO_CENTER[1]); carregarItensProximos(MAPUTO_CENTER[0], MAPUTO_CENTER[1]); }); }
+    
+    function addUserMarker(lat, lng) { if(userMarker) userMarker.remove(); const userIcon = L.divIcon({ html: '<div style="background:#FF9800; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></div>', iconSize: [20,20] }); userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map); userMarker.bindPopup('<strong>📍 Você está aqui</strong>').openPopup(); }
+    
+    function getCoordenadasPorBairro(bairro) { const coords = { 'malanga':[-25.950,32.580], 'sommerschield':[-25.965,32.590], 'polana':[-25.970,32.585], 'coop':[-25.960,32.575], 'maxaquene':[-25.945,32.575] }; return coords[(bairro||'').toLowerCase()] || MAPUTO_CENTER; }
+    function calcularDistancia(lat1,lng1,lat2,lng2) { const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180, a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+    
+    async function carregarItensProximos(lat, lng) {
+        markers.forEach(m => m.remove()); markers = [];
+        let itens = [];
+        if (currentTipo === "trabalhos" || currentTipo === "ambos") {
+            const trabalhosSnap = await database.ref('trabalhos').once('value');
+            const trabalhos = trabalhosSnap.val() || {};
+            for (const [key, trabalho] of Object.entries(trabalhos)) {
+                if (trabalho.autorId === currentUser?.uid) continue;
+                const coords = getCoordenadasPorBairro(trabalho.autorBairro);
+                const distancia = calcularDistancia(lat, lng, coords[0], coords[1]);
+                if (distancia <= 15) itens.push({ id: key, tipo: "trabalho", titulo: trabalho.titulo, descricao: trabalho.descricao, preco: trabalho.preco || "Negociável", nome: trabalho.autorNome, telefone: trabalho.autorTelefone, bairro: trabalho.autorBairro, lat: coords[0], lng: coords[1], distancia: distancia });
+            }
+        }
+        if (currentTipo === "vagas" || currentTipo === "ambos") {
+            const vagasSnap = await database.ref('vagas').once('value');
+            const vagas = vagasSnap.val() || {};
+            for (const [key, vaga] of Object.entries(vagas)) {
+                if (vaga.autorId === currentUser?.uid) continue;
+                const coords = getCoordenadasPorBairro(vaga.bairro);
+                const distancia = calcularDistancia(lat, lng, coords[0], coords[1]);
+                if (distancia <= 15) itens.push({ id: key, tipo: "vaga", titulo: vaga.titulo, descricao: vaga.descricao, remuneracao: vaga.remuneracao || "A combinar", nome: vaga.autorNome, telefone: vaga.autorTelefone, bairro: vaga.bairro, lat: coords[0], lng: coords[1], distancia: distancia });
+            }
+        }
+        for (const item of itens) { const color = item.tipo === 'trabalho' ? '#4CAF50' : '#2196F3'; const icon = L.divIcon({ html: `<div style="background:${color}; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.2);">${item.tipo === 'trabalho' ? '💼' : '📢'}</div>`, iconSize: [32,32] }); const marker = L.marker([item.lat, item.lng], { icon }).addTo(map); marker.bindPopup(`<strong>${escapeHtml(item.titulo)}</strong><br>${escapeHtml(item.nome)}<br>📍 ${escapeHtml(item.bairro)}<br>${item.tipo === 'trabalho' ? `💰 ${escapeHtml(item.preco)}` : `💵 ${escapeHtml(item.remuneracao)}`}<br><button onclick="abrirInfoPanel('${item.id}', '${item.tipo}')" style="background:#FF9800; border:none; padding:5px 12px; border-radius:20px; margin-top:8px;">Ver detalhes</button>`); markers.push(marker); }
+        showToast(itens.length > 0 ? `📍 ${itens.length} oportunidade${itens.length !== 1 ? 's' : ''} encontrada${itens.length !== 1 ? 's' : ''} perto de si!` : "📭 Nenhuma oportunidade encontrada.");
+    }
+    
+    window.abrirInfoPanel = async function(id, tipo) {
+        let data; if (tipo === 'trabalho') { const snap = await database.ref(`trabalhos/${id}`).once('value'); data = snap.val(); } else { const snap = await database.ref(`vagas/${id}`).once('value'); data = snap.val(); }
+        if (!data) return;
+        const panel = document.getElementById('infoPanel'), content = document.getElementById('panelContent');
+        content.innerHTML = `<button class="close-panel" id="closePanel">✕</button><div style="display:flex; justify-content:space-between;"><h4>${escapeHtml(data.titulo)}</h4><span class="badge ${tipo === 'trabalho' ? 'badge-trabalho' : 'badge-vaga'}">${tipo === 'trabalho' ? '📋 Trabalho' : '💼 Vaga'}</span></div><div class="preco">${tipo === 'trabalho' ? `💰 ${escapeHtml(data.preco || 'Negociável')}` : `💵 ${escapeHtml(data.remuneracao || 'A combinar')}`}</div><p><strong>👤 ${escapeHtml(data.autorNome)}</strong></p><p>📍 ${escapeHtml(data.autorBairro || data.bairro)}</p><p>📝 ${escapeHtml(data.descricao)}</p><button class="btn-chat" id="contactarBtn" data-telefone="${escapeHtml(data.autorTelefone || '')}" data-nome="${escapeHtml(data.autorNome || '')}">💬 Contactar via WhatsApp</button>`;
+        panel.classList.add('show');
+        document.getElementById('closePanel').onclick = () => panel.classList.remove('show');
+        const contactarBtn = document.getElementById('contactarBtn');
+        if(contactarBtn) contactarBtn.onclick = () => { const num = formatWhatsAppNumber(contactarBtn.dataset.telefone); if(num) window.open(`https://wa.me/${num}?text=Olá%20${encodeURIComponent(contactarBtn.dataset.nome)}!%20👋%20Encontrei%20seu%20anúncio%20no%20Mapa%20do%20KayaMoz.`, '_blank'); else showToast("Número não disponível."); };
+    };
+    
+    document.getElementById('myLocationBtn').onclick = getUserLocation;
+    document.querySelectorAll('.tipo-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentTipo = btn.dataset.tipo; if (userMarker) carregarItensProximos(map.getCenter().lat, map.getCenter().lng); }); });
+    
+    auth.onAuthStateChanged(user => { if (!user) window.location.href = "login.html"; else { currentUser = user; getUserLocation(); } });
+</script>
+</body>
+</html>

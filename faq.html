@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - FAQ</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body { background: #F0F2F5; padding: 20px 16px 80px; }
+        header, nav:not(.bottom-nav), .tab-bar { display: none !important; }
+        
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin: -20px -16px 20px;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .logo { flex: 1; font-size: 18px; font-weight: 700; color: white; }
+        .logo span { color: #FF9800; background: white; padding: 2px 8px; border-radius: 12px; }
+        
+        .card { background: white; border-radius: 32px; padding: 24px; margin-bottom: 20px; }
+        h1 { color: #1C1E21; margin-bottom: 20px; border-left: 5px solid #FF9800; padding-left: 16px; font-size: 24px; }
+        
+        .faq-item { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 16px; }
+        .faq-question { font-weight: 700; color: #FF9800; cursor: pointer; display: flex; justify-content: space-between; }
+        .faq-answer { color: #666; margin-top: 8px; display: none; line-height: 1.5; }
+        .faq-answer.show { display: block; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <button class="back-btn" onclick="window.location.href='perfil.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div style="width: 40px;"></div>
+</div>
+
+<div class="card">
+    <h1>❓ Perguntas Frequentes</h1>
+    <div class="faq-item"><div class="faq-question">Como criar uma conta? <span>▼</span></div><div class="faq-answer">Clique em "Criar conta" no login, preencha e-mail e senha. Depois complete seu perfil com nome, telefone e profissão.</div></div>
+    <div class="faq-item"><div class="faq-question">Como publicar um trabalho? <span>▼</span></div><div class="faq-answer">Vá na aba "Publicar", preencha título, descrição, categoria e preço. Pode adicionar até 3 fotos.</div></div>
+    <div class="faq-item"><div class="faq-question">O que é o selo verificado? <span>▼</span></div><div class="faq-answer">É um selo azul que aumenta sua credibilidade. Custa 50 MT e é ativado após envio de comprovativo e aprovação.</div></div>
+    <div class="faq-item"><div class="faq-question">Como contactar um profissional? <span>▼</span></div><div class="faq-answer">Clique em "Chat no WhatsApp" no card do profissional ou use o chat interno do app.</div></div>
+    <div class="faq-item"><div class="faq-question">Como funciona o mapa de trabalhos? <span>▼</span></div><div class="faq-answer">O mapa mostra trabalhos e vagas próximos à sua localização (até 15km). Ative a localização no seu dispositivo.</div></div>
+    <div class="faq-item"><div class="faq-question">Como ganho pontos? <span>▼</span></div><div class="faq-answer">Compartilhando o app (+2 MT/dia), bónus diário (+0.5 MT), indicando amigos (+10 MT) e publicando trabalhos (+1 MT).</div></div>
+    <div class="faq-item"><div class="faq-question">Como recuperar minha senha? <span>▼</span></div><div class="faq-answer">Na tela de login, digite seu e-mail e clique em "Esqueceu a palavra-passe". Receberá um link por e-mail.</div></div>
+</div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="chat_list.html" class="bottom-nav-item">💬 Chat</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+    <a href="perfil.html" class="bottom-nav-item">👤 Perfil</a>
+</div>
+
+<script>
+    document.querySelectorAll('.faq-question').forEach(q => { q.addEventListener('click', () => { q.nextElementSibling.classList.toggle('show'); }); });
+</script>
+</body>
+</html>

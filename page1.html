@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>KayaMoz - Mural de Talentos</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="push-notifications.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body { background: #F0F2F5; padding-bottom: 70px; overflow-x: hidden; }
+        header, nav:not(.bottom-nav):not(.nav-bottom), .tab-bar, [role="tablist"] { display: none !important; }
+
+        /* Menu Lateral */
+        .drawer {
+            position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
+            background: linear-gradient(180deg, #1C1E21 0%, #2C2E31 100%);
+            z-index: 1000; transition: left 0.3s ease; box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+        .drawer.open { left: 0; }
+        .drawer-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .drawer-avatar { width: 80px; height: 80px; background: #FF9800; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 36px; color: white; overflow: hidden; }
+        .drawer-name { color: white; font-size: 18px; font-weight: 700; }
+        .drawer-email { color: #aaa; font-size: 12px; margin-top: 4px; }
+        .drawer-menu { padding: 20px 0; max-height: calc(100% - 180px); overflow-y: auto; }
+        .drawer-item { display: flex; align-items: center; gap: 16px; padding: 12px 24px; color: #ddd; text-decoration: none; font-size: 14px; transition: background 0.2s; cursor: pointer; }
+        .drawer-item:hover, .drawer-item.active { background: rgba(255,152,0,0.2); color: #FF9800; }
+        .drawer-item-icon { font-size: 20px; width: 28px; }
+        .drawer-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 12px 24px; }
+
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
+        .overlay.show { display: block; }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .logo { font-size: 18px; font-weight: 700; color: white; position: absolute; left: 50%; transform: translateX(-50%); }
+        .logo span { color: #FF9800; background: white; padding: 2px 8px; border-radius: 12px; }
+
+        .header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .header-icon { background: none; border: none; color: white; font-size: 22px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .badge { position: absolute; top: 0; right: 0; background: #FF4444; color: white; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        /* Onboarding */
+        .info-screen {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 200;
+            display: flex; flex-direction: column; animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .info-header { background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%); padding: 40px 20px; text-align: center; color: white; }
+        .info-logo { font-size: 48px; font-weight: 800; margin-bottom: 16px; }
+        .info-logo span { background: white; color: #FF9800; padding: 0 8px; border-radius: 12px; }
+        .info-slogan { font-size: 14px; opacity: 0.9; }
+        .info-content { flex: 1; padding: 24px 20px; overflow-y: auto; }
+        .info-card { background: #F8F9FA; border-radius: 24px; padding: 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+        .info-icon { font-size: 40px; }
+        .info-text h3 { font-size: 16px; margin-bottom: 4px; color: #1C1E21; }
+        .info-text p { font-size: 13px; color: #666; line-height: 1.4; }
+        .info-footer { padding: 20px; border-top: 1px solid #eee; background: white; }
+        .btn-start { background: #FF9800; border: none; padding: 16px; border-radius: 40px; font-weight: bold; font-size: 16px; width: 100%; cursor: pointer; }
+
+        /* Conteúdo Principal */
+        .main-content { padding: 16px; display: none; }
+        .main-content.visible { display: block; }
+        .hero { background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%); padding: 32px 20px; border-radius: 28px; text-align: center; color: white; margin-bottom: 20px; }
+        .hero h1 { font-size: 24px; margin-bottom: 8px; }
+        .search-box { padding: 16px 20px; background: white; margin: -20px 16px 0; border-radius: 48px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .search-box input { width: 100%; padding: 14px 20px; border-radius: 40px; border: 1px solid #e0e0e0; font-size: 16px; background: #f8f8f8; }
+        .filters { padding: 12px 16px; display: flex; gap: 10px; overflow-x: auto; background: white; margin: 12px 16px; border-radius: 40px; }
+        .filter-btn { background: #F0F2F5; border: none; padding: 8px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; color: #666; cursor: pointer; }
+        .filter-btn.active { background: #FF9800; color: #1C1E21; }
+        .container { padding: 16px; }
+
+        .job-card { background: white; border-radius: 28px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #FF9800, #F57C00); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-details h4 { font-size: 16px; font-weight: 700; color: #1C1E21; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .verified-badge { background: #2196F3; color: white; padding: 2px 8px; border-radius: 20px; font-size: 10px; }
+        .user-type { display: inline-block; background: #E3F2FD; color: #1976D2; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-top: 4px; }
+        .post-time { font-size: 11px; color: #999; }
+        .skills-container { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .skill-tag { background: #F0F2F5; padding: 4px 10px; border-radius: 20px; font-size: 11px; color: #666; }
+        .card-content { padding: 12px 16px; }
+        .job-title { font-size: 18px; font-weight: 700; color: #1C1E21; margin-bottom: 8px; }
+        .job-desc { font-size: 14px; color: #666; line-height: 1.5; margin-bottom: 12px; }
+        .job-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .tag { background: #F0F2F5; padding: 4px 12px; border-radius: 20px; font-size: 11px; color: #666; }
+        .tag-location { background: #FFF3E0; color: #FF9800; }
+
+        .card-actions { display: flex; justify-content: space-around; padding: 12px 16px; border-top: 1px solid #f0f0f0; background: #FAFAFA; }
+        .action-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; padding: 8px 16px; border-radius: 30px; font-size: 12px; font-weight: 500; cursor: pointer; color: #666; }
+        .whatsapp-btn { background: #25D366; color: white; }
+        .chat-btn { background: #2196F3; color: white; }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: white;
+            display: flex; justify-content: space-around; padding: 8px 16px 14px; border-top: 1px solid #eee; z-index: 100;
+        }
+        .bottom-nav-item { text-align: center; color: #888; text-decoration: none; font-size: 11px; font-weight: 500; padding: 6px 12px; border-radius: 30px; }
+        .bottom-nav-item.active { color: #FF9800; background: #FFF3E0; }
+
+        .results-count { padding: 8px 16px; font-size: 13px; color: #666; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .toast-notif { position: fixed; bottom: 80px; left: 16px; right: 16px; background: #1C1E21; color: white; padding: 12px 20px; border-radius: 50px; text-align: center; z-index: 200; }
+        .visitante-aviso { background: #E3F2FD; color: #1565C0; padding: 12px; text-align: center; font-size: 12px; margin: 0 16px 16px; border-radius: 28px; }
+    </style>
+</head>
+<body>
+
+<!-- Menu Lateral -->
+<div class="drawer" id="drawer">
+    <div class="drawer-header">
+        <div class="drawer-avatar" id="drawerAvatar">👤</div>
+        <div class="drawer-name" id="drawerName">Carregando...</div>
+        <div class="drawer-email" id="drawerEmail">-</div>
+    </div>
+    <div class="drawer-menu">
+        <a href="javascript:void(0)" class="drawer-item" data-page="page1"><span class="drawer-item-icon">🏠</span><span>Início</span></a>
+        <a href="javascript:void(0)" class="drawer-item" data-page="page2"><span class="drawer-item-icon">➕</span><span>Publicar</span></a>
+        <a href="javascript:void(0)" class="drawer-item" data-page="mapa_trabalhos"><span class="drawer-item-icon">🗺️</span><span>Mapa</span></a>
+        <div class="drawer-divider"></div>
+        <a href="javascript:void(0)" class="drawer-item" data-page="sistema_pontos"><span class="drawer-item-icon">💰</span><span>Meus Pontos</span></a>
+        <a href="javascript:void(0)" class="drawer-item" data-page="avaliacoes"><span class="drawer-item-icon">⭐</span><span>Avaliações</span></a>
+        <div class="drawer-divider"></div>
+        <a href="javascript:void(0)" class="drawer-item" data-page="faq"><span class="drawer-item-icon">❓</span><span>Ajuda</span></a>
+        <a href="javascript:void(0)" class="drawer-item" data-page="termos"><span class="drawer-item-icon">📜</span><span>Termos</span></a>
+        <a href="javascript:void(0)" class="drawer-item" id="logoutDrawer"><span class="drawer-item-icon">🚪</span><span>Sair</span></a>
+    </div>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="app-header">
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div class="header-actions">
+        <button class="header-icon" id="btnNotificacoes">🔔<span id="notifBadge" class="badge" style="display:none;">0</span></button>
+        <button class="header-icon" id="btnChat">💬</button>
+        <button class="header-icon" id="btnPerfil">👤</button>
+    </div>
+</div>
+
+<!-- Onboarding -->
+<div id="infoScreen" class="info-screen">
+    <div class="info-header"><div class="info-logo">Kaya<span>Moz</span></div><div class="info-slogan">Trabalho real. No teu bairro.</div></div>
+    <div class="info-content">
+        <div class="info-card"><div class="info-icon">🔍</div><div class="info-text"><h3>Encontre talentos perto de si</h3><p>Busque por profissionais qualificados no seu bairro.</p></div></div>
+        <div class="info-card"><div class="info-icon">📢</div><div class="info-text"><h3>Publique seus serviços</h3><p>Divulgue o que sabe fazer e receba propostas.</p></div></div>
+        <div class="info-card"><div class="info-icon">💬</div><div class="info-text"><h3>Chat em tempo real</h3><p>Converse diretamente com clientes ou profissionais.</p></div></div>
+        <div class="info-card"><div class="info-icon">✅</div><div class="info-text"><h3>Verificação de perfil</h3><p>Selo azul por 50 MT - aumente sua credibilidade.</p></div></div>
+        <div class="info-card"><div class="info-icon">💰</div><div class="info-text"><h3>Ganhe pontos</h3><p>Compartilhe, publique e indique amigos.</p></div></div>
+        <div class="info-card"><div class="info-icon">⭐</div><div class="info-text"><h3>Avaliações</h3><p>Veja a reputação de cada profissional.</p></div></div>
+    </div>
+    <div class="info-footer"><button class="btn-start" id="btnStart">🚀 Explorar Talentos</button></div>
+</div>
+
+<!-- Conteúdo Principal -->
+<div class="main-content" id="mainContent">
+    <div id="visitanteAviso" class="visitante-aviso" style="display:none;">👤 Modo Visitante ativo. Crie uma conta para publicar e ter seu perfil!</div>
+    <div class="hero"><h1>Talento <span>local</span></h1><p>Conecta-te com os melhores profissionais do teu bairro</p></div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="🔍 Buscar por nome, trabalho ou bairro..."></div>
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">📋 Todos</button>
+        <button class="filter-btn" data-filter="trabalhador">👨‍🔧 Trabalhador</button>
+        <button class="filter-btn" data-filter="contratante">👔 Contratante</button>
+        <button class="filter-btn" data-filter="verificado">✅ Verificados</button>
+    </div>
+    <div class="results-count" id="resultsCount"></div>
+    <div class="container" id="talentsContainer"><div style="text-align:center; padding:40px;">A carregar talentos...</div></div>
+</div>
+
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item active">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const database = firebase.database();
+    let allTalents = [], currentUser = null, currentFilter = "all", notificacoesNaoLidas = 0;
+
+    const pages = { page1: 'page1.html', page2: 'page2.html', mapa_trabalhos: 'mapa_trabalhos.html', perfil: 'perfil.html', sistema_pontos: 'sistema_pontos.html', avaliacoes: 'avaliacoes.html', faq: 'faq.html', termos: 'termos.html' };
+    function navegar(page) { const url = pages[page]; if (url && url !== 'page1.html') window.location.href = url; closeDrawer(); }
+    function openDrawer() { document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
+    function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+    document.getElementById('menuBtn').onclick = openDrawer;
+    document.getElementById('overlay').onclick = closeDrawer;
+    document.querySelectorAll('.drawer-item[data-page]').forEach(item => item.addEventListener('click', (e) => { e.preventDefault(); navegar(item.getAttribute('data-page')); }));
+    document.getElementById('logoutDrawer').onclick = () => { auth.signOut().then(() => window.location.href = "login.html"); };
+    document.getElementById('btnNotificacoes').onclick = () => window.location.href = "notificacoes.html";
+    document.getElementById('btnChat').onclick = () => window.location.href = "chat_list.html";
+    document.getElementById('btnPerfil').onclick = () => window.location.href = "perfil.html";
+
+    document.getElementById('btnStart').onclick = () => { document.getElementById('infoScreen').style.display = 'none'; document.getElementById('mainContent').classList.add('visible'); localStorage.setItem('onboardingVisto', 'true'); };
+    if (localStorage.getItem('onboardingVisto') === 'true') { document.getElementById('infoScreen').style.display = 'none'; document.getElementById('mainContent').classList.add('visible'); }
+
+    function showToast(msg) { let toast = document.createElement('div'); toast.className = 'toast-notif'; toast.innerHTML = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function formatWhatsAppNumber(t) { if(!t) return null; let n = t.replace(/\D/g,''); if(n.startsWith('0')) n='258'+n.substring(1); else if(!n.startsWith('258')) n='258'+n; return n; }
+    function sendWhatsApp(t, n) { const num = formatWhatsAppNumber(t); if(!num) { showToast("⚠️ Número não disponível."); return; } window.open(`https://wa.me/${num}?text=Olá%20${encodeURIComponent(n)}!%20👋%20Encontrei%20seu%20perfil%20no%20KayaMoz.`, '_blank'); }
+    function getTimeAgo(ts) { if(!ts) return "Recentemente"; const s = Math.floor((Date.now()-ts)/1000); if(s<60) return "há "+s+"s"; if(s<3600) return "há "+Math.floor(s/60)+"min"; if(s<86400) return "há "+Math.floor(s/3600)+"h"; return "há "+Math.floor(s/86400)+"d"; }
+    
+    function getAvatarUrl(nome, fotoPerfil, tipo) {
+        if(fotoPerfil && fotoPerfil !== "") return fotoPerfil;
+        const avatares = {
+            trabalhador: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+            contratante: 'https://cdn-icons-png.flaticon.com/512/3135/3135767.png',
+            empresa: 'https://cdn-icons-png.flaticon.com/512/3081/3081879.png',
+            biscate: 'https://cdn-icons-png.flaticon.com/512/2997/2997911.png'
+        };
+        return avatares[tipo] || avatares.trabalhador;
+    }
+
+    async function carregarNotificacoesBadge() { 
+        if(!currentUser || currentUser.isVisitante) return; 
+        try {
+            const notifSnap = await database.ref(`users/${currentUser.uid}/notificacoes`).orderByChild('lida').equalTo(false).once('value'); 
+            notificacoesNaoLidas = notifSnap.numChildren(); 
+            const badge = document.getElementById('notifBadge'); 
+            if (notificacoesNaoLidas > 0) { badge.style.display = 'flex'; badge.innerText = notificacoesNaoLidas > 9 ? '9+' : notificacoesNaoLidas; } 
+            else { badge.style.display = 'none'; }
+        } catch(err) { console.error(err); }
+    }
+
+    async function carregarDadosUsuario() { 
+        if (!currentUser || currentUser.isVisitante) return; 
+        const userSnap = await database.ref(`users/${currentUser.uid}`).once('value'); 
+        const userData = userSnap.val() || {}; 
+        document.getElementById('drawerName').innerText = userData.nome || "Usuário"; 
+        document.getElementById('drawerEmail').innerText = currentUser.email; 
+        document.getElementById('drawerAvatar').innerHTML = `<img src="${getAvatarUrl(userData.nome, userData.fotoPerfil, userData.tipo)}" style="width:100%; height:100%; object-fit:cover;">`;
+    }
+
+    function renderTalents(filterText = "") {
+        const container = document.getElementById('talentsContainer');
+        const lowerFilter = filterText.toLowerCase();
+        let filtered = allTalents.filter(t => (t.nome || '').toLowerCase().includes(lowerFilter) || (t.titulo || '').toLowerCase().includes(lowerFilter) || (t.bairro || '').toLowerCase().includes(lowerFilter) || (t.skills || []).some(s => s.toLowerCase().includes(lowerFilter)));
+        if (currentFilter === 'trabalhador') filtered = filtered.filter(t => t.tipo === 'trabalhador');
+        else if (currentFilter === 'contratante') filtered = filtered.filter(t => t.tipo === 'contratante');
+        else if (currentFilter === 'verificado') filtered = filtered.filter(t => t.verificado === true);
+        filtered.sort((a, b) => { if (a.verificado && !b.verificado) return -1; if (!a.verificado && b.verificado) return 1; return (b.timestamp || 0) - (a.timestamp || 0); });
+        document.getElementById('resultsCount').innerHTML = `📌 ${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`;
+        if (filtered.length === 0) { container.innerHTML = `<div class="empty-state"><span>🔍</span><h3>Nenhum resultado encontrado</h3><p style="margin-top:8px;">Tente outra busca ou <a href="page2.html" style="color:#FF9800;">publique seu primeiro trabalho</a></p></div>`; return; }
+        container.innerHTML = filtered.map(t => { 
+            const userTypeLabel = t.tipo === 'contratante' ? '👔 Contratante' : '👨‍🔧 Trabalhador';
+            const timeAgo = getTimeAgo(t.timestamp);
+            const avatarHtml = `<img src="${getAvatarUrl(t.nome, t.fotoPerfil, t.tipo)}">`;
+            const verifiedBadge = t.verificado ? '<span class="verified-badge">✓ Verificado</span>' : '';
+            const skills = t.skills || [];
+            return `<div class="job-card"><div class="card-header"><div class="user-info"><div class="avatar">${avatarHtml}</div><div class="user-details"><h4>${escapeHtml(t.nome) || "Usuário"} ${verifiedBadge}</h4><span class="user-type">${userTypeLabel}</span></div></div><div class="post-time">🕐 ${timeAgo}</div></div><div class="card-content"><div class="job-title">${escapeHtml(t.titulo || "Serviço disponível")}</div><div class="job-desc">${escapeHtml(t.descricao || "Descrição não fornecida")}</div>${skills.length > 0 ? `<div class="skills-container">${skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('')}</div>` : ''}<div class="job-tags"><span class="tag tag-location">📍 ${escapeHtml(t.provincia || "Maputo")}</span>${t.preco ? `<span class="tag">💰 ${escapeHtml(t.preco)}</span>` : ''}</div></div><div class="card-actions"><button class="action-btn whatsapp-btn" data-telefone="${escapeHtml(t.whatsapp || t.telefone || '')}" data-nome="${escapeHtml(t.nome || '')}">💬 WhatsApp</button><button class="action-btn chat-btn" data-id="${t.id}" data-nome="${escapeHtml(t.nome || '')}">💬 Chat</button></div></div>`; }).join('');
+        document.querySelectorAll('.whatsapp-btn').forEach(btn => btn.addEventListener('click', function() { sendWhatsApp(this.dataset.telefone, this.dataset.nome); }));
+        document.querySelectorAll('.chat-btn').forEach(btn => btn.addEventListener('click', function() { const userId = this.dataset.id, nome = this.dataset.nome; if (!userId || userId === currentUser?.uid) { showToast("⚠️ Não podes iniciar chat contigo mesmo!"); return; } window.location.href = `chat_direct.html?userId=${userId}&nome=${encodeURIComponent(nome)}`; }));
+    }
+
+    function carregarDados() {
+        Promise.all([database.ref('trabalhos').once('value'), database.ref('users').once('value')]).then(([trabalhosSnap, usersSnap]) => {
+            const trabalhos = trabalhosSnap.val() || {}, users = usersSnap.val() || {};
+            allTalents = [];
+            Object.keys(trabalhos).forEach(key => { const t = trabalhos[key]; const autor = users[t.autorId] || {}; allTalents.push({ id: t.autorId, tipo: t.tipo || 'trabalhador', titulo: t.titulo, descricao: t.descricao, preco: t.preco, skills: t.skills || [], provincia: t.provincia, telefone: t.telefone, whatsapp: t.whatsapp, nome: t.autorNome || autor.nome || "Usuário", fotoPerfil: autor.fotoPerfil, verificado: autor.verificado || false, timestamp: t.timestamp, autorId: t.autorId }); });
+            Object.keys(users).forEach(uid => { const user = users[uid]; if (user.nome && user.nome.trim() !== "" && uid !== currentUser?.uid) { const existe = allTalents.some(t => t.autorId === uid); if (!existe) { allTalents.push({ id: uid, tipo: user.tipo || 'trabalhador', titulo: user.profissao || "Profissional disponível", descricao: "Clique em WhatsApp para contactar", skills: user.habilidades || [], provincia: user.provincia || "Maputo", telefone: user.telefone, whatsapp: user.whatsapp || user.telefone, nome: user.nome, fotoPerfil: user.fotoPerfil, verificado: user.verificado || false, timestamp: user.timestamp || Date.now(), autorId: uid }); } } });
+            renderTalents(document.getElementById('searchInput').value);
+        }).catch(err => console.error("Erro:", err));
+    }
+
+    function escutarNotificacoes() { if(!currentUser || currentUser.isVisitante) return; database.ref(`users/${currentUser.uid}/notificacoes`).on('child_added', () => { carregarNotificacoesBadge(); }); }
+
+    document.getElementById('searchInput').addEventListener('input', (e) => renderTalents(e.target.value));
+    document.querySelectorAll('.filter-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentFilter = btn.dataset.filter; renderTalents(document.getElementById('searchInput').value); }); });
+    
+    // Verificar modo visitante
+    const urlParams = new URLSearchParams(window.location.search);
+    const isVisitante = urlParams.get('modo') === 'visitante' || sessionStorage.getItem('modoVisitante') === 'true';
+
+    if (isVisitante) {
+        currentUser = { uid: sessionStorage.getItem('visitanteId'), isVisitante: true, email: 'visitante@kayamoz.com', nome: sessionStorage.getItem('visitanteNome') || 'Visitante' };
+        document.getElementById('drawerName').innerText = currentUser.nome;
+        document.getElementById('drawerEmail').innerText = 'Modo Visitante';
+        document.getElementById('drawerAvatar').innerHTML = '👤';
+        document.getElementById('visitanteAviso').style.display = 'block';
+        carregarDados();
+    } else {
+        auth.onAuthStateChanged(user => { 
+            if (!user) { window.location.href = "login.html"; }
+            else { 
+                currentUser = user; 
+                carregarDadosUsuario(); 
+                carregarDados(); 
+                carregarNotificacoesBadge();
+                escutarNotificacoes();
+                if (typeof inicializarPushNotifications === 'function') { inicializarPushNotifications(); }
+            } 
+        });
+    }
+</script>
+</body>
+</html>

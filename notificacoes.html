@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KayaMoz - Notificações</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #F0F2F5;
+            padding-bottom: 70px;
+        }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .back-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .logo span {
+            color: #FF9800;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .header-icon {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #FF4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 14px;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .bottom-nav-item {
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+        .bottom-nav-item.active {
+            color: #FF9800;
+            background: #FFF3E0;
+        }
+
+        /* Container */
+        .container {
+            padding: 20px 16px;
+        }
+        .page-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1C1E21;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Notificações */
+        .notificacao-item {
+            background: white;
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 14px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .notificacao-naolida {
+            background: #FFF3E0;
+            border-left: 4px solid #FF9800;
+        }
+        .notificacao-icon {
+            font-size: 28px;
+            width: 48px;
+            text-align: center;
+        }
+        .notificacao-conteudo {
+            flex: 1;
+        }
+        .notificacao-titulo {
+            font-weight: 700;
+            color: #1C1E21;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+        .notificacao-mensagem {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        .notificacao-tempo {
+            font-size: 11px;
+            color: #999;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .marcar-lidas {
+            background: #FF9800;
+            border: none;
+            padding: 12px;
+            border-radius: 40px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .marcar-lidas:active {
+            transform: scale(0.98);
+        }
+
+        .toast-notif {
+            position: fixed;
+            bottom: 80px;
+            left: 16px;
+            right: 16px;
+            background: #1C1E21;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 13px;
+            z-index: 200;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="app-header">
+    <button class="back-btn" onclick="window.location.href='page1.html'">←</button>
+    <div class="logo">Kaya<span>Moz</span></div>
+    <div class="header-actions">
+        <button class="header-icon" id="btnNotificacoes">🔔<span id="notifBadge" class="badge" style="display:none;">0</span></button>
+        <button class="header-icon" id="btnChat">💬</button>
+        <button class="header-icon" id="btnPerfil">👤</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="page-title">
+        <span>🔔</span> Notificações
+    </div>
+    <div id="notificacoesLista">
+        <div class="empty-state">Carregando notificações...</div>
+    </div>
+    <button class="marcar-lidas" id="marcarLidas">✅ Marcar todas como lidas</button>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+    <a href="page1.html" class="bottom-nav-item">🏠 Início</a>
+    <a href="page2.html" class="bottom-nav-item">➕ Publicar</a>
+    <a href="mapa_trabalhos.html" class="bottom-nav-item">🗺️ Mapa</a>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBh4SmNn05qmL32n89csKD9vQ67UyszQSA",
+        authDomain: "kayamoz-53827.firebaseapp.com",
+        databaseURL: "https://kayamoz-53827-default-rtdb.firebaseio.com",
+        projectId: "kayamoz-53827",
+        storageBucket: "kayamoz-53827.appspot.com",
+        messagingSenderId: "1056589345224",
+        appId: "1:1056589345224:web:e0f49f506e788c0399120e"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    
+    const auth = firebase.auth();
+    const database = firebase.database();
+    let currentUser = null;
+
+    function showToast(msg) {
+        let toast = document.createElement('div');
+        toast.className = 'toast-notif';
+        toast.innerHTML = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
+    }
+
+    function getTimeAgo(timestamp) {
+        if (!timestamp) return "";
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        if (seconds < 60) return "agora";
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `há ${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `há ${hours} h`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `há ${days} d`;
+        return new Date(timestamp).toLocaleDateString('pt-PT');
+    }
+
+    async function carregarNotificacoes() {
+        if (!currentUser || currentUser.isVisitante) {
+            document.getElementById('notificacoesLista').innerHTML = '<div class="empty-state">🔔 Faça login para ver suas notificações</div>';
+            return;
+        }
+        
+        const notifSnap = await database.ref(`users/${currentUser.uid}/notificacoes`).orderByChild('timestamp').once('value');
+        const notificacoes = notifSnap.val() || {};
+        const container = document.getElementById('notificacoesLista');
+        
+        if (Object.keys(notificacoes).length === 0) {
+            container.innerHTML = '<div class="empty-state">🔔 Nenhuma notificação por enquanto</div>';
+            return;
+        }
+        
+        let html = '';
+        const keys = Object.keys(notificacoes).reverse();
+        for (const key of keys) {
+            const n = notificacoes[key];
+            const naoLida = !n.lida;
+            const timeAgo = getTimeAgo(n.timestamp);
+            let icon = '🔔';
+            if (n.tipo === 'novo_trabalho') icon = '📢';
+            else if (n.tipo === 'verificacao') icon = '✅';
+            else if (n.tipo === 'nova_mensagem') icon = '💬';
+            
+            html += `
+                <div class="notificacao-item ${naoLida ? 'notificacao-naolida' : ''}" data-id="${key}">
+                    <div class="notificacao-icon">${icon}</div>
+                    <div class="notificacao-conteudo">
+                        <div class="notificacao-titulo">${escapeHtml(n.titulo)}</div>
+                        <div class="notificacao-mensagem">${escapeHtml(n.mensagem)}</div>
+                        <div class="notificacao-tempo">${timeAgo}</div>
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+        
+        // Atualizar badge
+        await atualizarBadge();
+    }
+
+    async function marcarTodasLidas() {
+        if (!currentUser || currentUser.isVisitante) return;
+        
+        const notifSnap = await database.ref(`users/${currentUser.uid}/notificacoes`).once('value');
+        const notificacoes = notifSnap.val() || {};
+        
+        for (const key in notificacoes) {
+            await database.ref(`users/${currentUser.uid}/notificacoes/${key}/lida`).set(true);
+        }
+        
+        showToast("✅ Todas notificações marcadas como lidas");
+        carregarNotificacoes();
+        atualizarBadge();
+    }
+
+    async function atualizarBadge() {
+        if (!currentUser || currentUser.isVisitante) return;
+        const naoLidasSnap = await database.ref(`users/${currentUser.uid}/notificacoes`).orderByChild('lida').equalTo(false).once('value');
+        const count = naoLidasSnap.numChildren();
+        const badge = document.getElementById('notifBadge');
+        if (count > 0) {
+            badge.style.display = 'flex';
+            badge.innerText = count > 9 ? '9+' : count;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // Botões do header
+    document.getElementById('btnNotificacoes').onclick = () => window.location.href = "notificacoes.html";
+    document.getElementById('btnChat').onclick = () => window.location.href = "chat_list.html";
+    document.getElementById('btnPerfil').onclick = () => window.location.href = "perfil.html";
+    document.getElementById('marcarLidas').onclick = marcarTodasLidas;
+
+    // Verificar modo visitante
+    const isVisitante = sessionStorage.getItem('modoVisitante') === 'true';
+    
+    auth.onAuthStateChanged(user => {
+        if (!user && !isVisitante) {
+            window.location.href = "login.html";
+        } else {
+            if (user) currentUser = user;
+            else if (isVisitante) currentUser = { isVisitante: true, uid: sessionStorage.getItem('visitanteId') };
+            carregarNotificacoes();
+        }
+    });
+</script>
+</body>
+</html>

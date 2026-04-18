@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sem Internet - KayaMoz</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+        body {
+            background: linear-gradient(135deg, #1C1E21 0%, #FF9800 100%);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px;
+        }
+        .card {
+            background: white; border-radius: 32px; padding: 40px; text-align: center; max-width: 400px;
+        }
+        .icon { font-size: 64px; margin-bottom: 20px; }
+        h1 { font-size: 24px; margin-bottom: 12px; }
+        p { color: #666; margin-bottom: 24px; }
+        .btn {
+            background: #FF9800; border: none; padding: 14px 24px; border-radius: 40px;
+            font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">📡</div>
+        <h1>Sem conexão com a internet</h1>
+        <p>Verifique sua ligação à internet e tente novamente.</p>
+        <button class="btn" onclick="location.reload()">🔁 Tentar novamente</button>
+    </div>
+</body>
+</html>
